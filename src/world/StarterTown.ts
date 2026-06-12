@@ -4,6 +4,7 @@ import type { CircleCollider } from "./Collision.js";
 import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { createHumanoidModel } from "./HumanoidModel.js";
+import { TownBuildingAsset } from "./TownBuildingAsset.js";
 import { WorldAsset } from "./WorldAsset.js";
 
 export type EnemySpawn = {
@@ -75,7 +76,7 @@ export class StarterTown extends WorldAsset {
       [48, -2, -0.7, 1.22],
       [-52, 2, 1.45, 1.18],
       [8, 38, 0.05, 1.28]
-    ].forEach(([x, z, yaw, scale]) => this.addCottage(x, z, yaw, scale));
+    ].forEach(([x, z, yaw, scale]) => this.addCottageAsset(x, z, yaw, scale));
 
     this.addTrainingYard(-18, 42);
     this.addMarket(12, 10);
@@ -91,50 +92,26 @@ export class StarterTown extends WorldAsset {
     this.flushInstancedBoxes();
   }
 
-  private addCottage(x: number, z: number, yaw: number, scale = 1): void {
-    const width = 8 * scale;
-    const depth = 7 * scale;
-    const wallHeight = 5.8 * scale;
-    this.addCollider(x, z, 4.8 * scale, "building", `cottage-${Math.round(x)}-${Math.round(z)}`);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(width, wallHeight, depth, 3, 4, 3), this.cottageMaterial);
-    base.position.set(x, this.getHeight(x, z) + wallHeight * 0.5, z);
-    base.rotation.y = yaw;
-    base.castShadow = false;
-    base.receiveShadow = true;
-    this.group.add(base);
-    this.addWorldShadow(x, z, width * 0.66, depth * 0.64, yaw);
-
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(5.3 * scale, 4.8 * scale, 12), this.roofMaterial);
-    roof.position.set(x, this.getHeight(x, z) + wallHeight + 2.25 * scale, z);
-    roof.rotation.y = yaw + Math.PI * 0.25;
-    this.group.add(roof);
-
-    const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9 * scale, 2.4 * scale, 0.9 * scale, 1, 2, 1), this.darkStoneMaterial);
-    chimney.position.set(x + Math.cos(yaw) * 2.2 * scale, this.getHeight(x, z) + wallHeight + 3.2 * scale, z + Math.sin(yaw) * 2.2 * scale);
-    chimney.rotation.y = yaw;
-    this.group.add(chimney);
-
-    [[-2.8, -3.56], [2.8, -3.56], [-2.8, 3.56], [2.8, 3.56]].forEach(([ox, oz], index) => {
-      const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.2 * scale, 1.35 * scale, 0.14 * scale, 1, 2, 1), index % 2 === 0 ? this.trimMaterial : this.brightStoneMaterial);
-      const rotatedX = ox * Math.cos(yaw) - oz * Math.sin(yaw);
-      const rotatedZ = ox * Math.sin(yaw) + oz * Math.cos(yaw);
-      shutter.position.set(x + rotatedX * scale, this.getHeight(x, z) + wallHeight * 0.72, z + rotatedZ * scale);
-      shutter.rotation.y = yaw;
-      this.group.add(shutter);
-    });
-
-    const door = new THREE.Mesh(new THREE.BoxGeometry(1.55 * scale, 2.45 * scale, 0.16 * scale, 1, 3, 1), this.darkStoneMaterial);
-    door.position.set(x + Math.sin(yaw) * depth * 0.5, this.getHeight(x, z) + 1.25 * scale, z + Math.cos(yaw) * depth * 0.5);
-    door.rotation.y = yaw;
-    this.group.add(door);
-
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.2 * scale, 0.9 * scale, 1, 1), this.lightMaterial);
-    glow.position.set(x - Math.sin(yaw) * depth * 0.51, this.getHeight(x, z) + wallHeight * 0.72, z - Math.cos(yaw) * depth * 0.51);
-    glow.rotation.y = yaw + Math.PI;
-    glow.userData.windowGlow = true;
-    this.group.add(glow);
-
-    this.addCottageTrimInstances(x, z, yaw, scale, width, depth, wallHeight);
+  private addCottageAsset(x: number, z: number, yaw: number, scale = 1): void {
+    this.addChildAsset(
+      new TownBuildingAsset({
+        x,
+        z,
+        yaw,
+        scale,
+        heights: this.heights,
+        materials: {
+          wall: this.cottageMaterial,
+          roof: this.roofMaterial,
+          stone: this.stoneMaterial,
+          brightStone: this.brightStoneMaterial,
+          darkStone: this.darkStoneMaterial,
+          trim: this.trimMaterial,
+          wood: this.woodMaterial,
+          light: this.lightMaterial
+        }
+      })
+    );
   }
 
   private addPatch(
@@ -216,44 +193,6 @@ export class StarterTown extends WorldAsset {
           ((row * 17 + col * 9) % 13) * 0.06
         );
       }
-    }
-  }
-
-  private addCottageTrimInstances(
-    x: number,
-    z: number,
-    yaw: number,
-    scale: number,
-    width: number,
-    depth: number,
-    wallHeight: number
-  ): void {
-    const yBase = this.getHeight(x, z);
-    const cornerX = width * 0.48;
-    const cornerZ = depth * 0.48;
-    [
-      [-cornerX, -cornerZ],
-      [cornerX, -cornerZ],
-      [-cornerX, cornerZ],
-      [cornerX, cornerZ]
-    ].forEach(([ox, oz]) => {
-      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.5, oz, 0.28 * scale, wallHeight * 1.04, 0.28 * scale);
-    });
-
-    [-cornerZ, cornerZ].forEach((oz) => {
-      this.queueLocalBox("wood", x, z, yaw, 0, yBase + wallHeight * 0.42, oz, width * 1.06, 0.22 * scale, 0.2 * scale);
-      this.queueLocalBox("wood", x, z, yaw, 0, yBase + wallHeight * 0.82, oz, width * 1.08, 0.24 * scale, 0.2 * scale);
-    });
-
-    [-cornerX, cornerX].forEach((ox) => {
-      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.42, 0, 0.2 * scale, 0.22 * scale, depth * 1.06);
-      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.82, 0, 0.2 * scale, 0.24 * scale, depth * 1.08);
-    });
-
-    for (let i = -2; i <= 2; i += 1) {
-      const offset = i * width * 0.16;
-      this.queueLocalBox("roof", x, z, yaw + Math.PI * 0.25, offset, yBase + wallHeight + 2.42 * scale, -depth * 0.24, 0.16 * scale, 0.18 * scale, 4.4 * scale);
-      this.queueLocalBox("roof", x, z, yaw + Math.PI * 0.25, offset, yBase + wallHeight + 2.42 * scale, depth * 0.24, 0.16 * scale, 0.18 * scale, 4.4 * scale);
     }
   }
 
@@ -355,23 +294,6 @@ export class StarterTown extends WorldAsset {
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
     this.group.add(mesh);
-  }
-
-  private queueLocalBox(
-    key: "wood" | "stone" | "darkStone" | "brightStone" | "roof",
-    originX: number,
-    originZ: number,
-    yaw: number,
-    offsetX: number,
-    y: number,
-    offsetZ: number,
-    scaleX: number,
-    scaleY: number,
-    scaleZ: number
-  ): void {
-    const rotatedX = offsetX * Math.cos(yaw) - offsetZ * Math.sin(yaw);
-    const rotatedZ = offsetX * Math.sin(yaw) + offsetZ * Math.cos(yaw);
-    this.queueBox(key, originX + rotatedX, y, originZ + rotatedZ, scaleX, scaleY, scaleZ, yaw);
   }
 
   private queueBox(

@@ -198,3 +198,14 @@ A visible in-app browser check on `127.0.0.1:4208` verified the diagnostic chang
 - WebGPU still reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
 - No browser console warnings or errors were captured.
 - The in-app browser session remained RAF-throttled around `1 FPS` with low render submit time, so this pass verifies collision diagnostics and WebGPU readback, not final 60 FPS performance.
+
+## Building Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownBuildingAsset` extraction.
+
+- `0 Collide` still resolved the extracted cottage child asset and reported `Last hit building / cottage--30--16 / push 2.38 / at X -30.0 Z -16.0`.
+- Recursive town collider counting preserved the expected town blocker count: `Collision 1 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`.
+- Render debug reported about `66 calls / 107,200 estimated tris` in the cottage collision view after the richer building asset extraction.
+- WebGPU still reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
+- No browser console warnings or errors were captured.
+- This in-app browser run again showed RAF throttling around `1 FPS` with low render submit time (`render 5.3 ms`), so it verifies the building asset/collision path and diagnostics but not final 60 FPS performance.

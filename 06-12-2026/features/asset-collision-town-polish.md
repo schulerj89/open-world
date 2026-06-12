@@ -15,6 +15,7 @@ The project still uses procedural low-poly assets rather than imported web asset
 The town detail pass reuses small shared geometry/material patterns and keeps collision coarse:
 
 - Buildings use one circle collider per cottage.
+- Cottages are now `TownBuildingAsset` child assets instead of inline `StarterTown` mesh blocks.
 - Fences use sampled circle colliders along the rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
@@ -26,11 +27,21 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 The debug HUD now separates blocker counts:
 
 - Tree blockers from streamed terrain chunks.
-- Town blockers from `StarterTown.colliders`.
+- Town blockers from `StarterTown.getColliderCount()`, including child building assets.
 - Room blockers from the combat debug room.
 - Enemy blockers from live enemy actors.
 
 The `0 Collide` quick tool now targets the current expanded cottage collider, and collision hit display holds long enough to be captured in browser QA. Town blocker owner labels now identify specific collision sources such as cottages, the tutorial guide NPC, market stalls, the plaza statue, crates, barrels, hay bales, lamp posts, and fence runs.
+
+## Building Asset Extraction
+
+The cottage mesh/collider path was moved into `TownBuildingAsset extends WorldAsset`.
+
+- Each cottage owns its own coarse circle collider and reports its cottage name in `Last hit`.
+- `StarterTown` registers cottages as child assets, and `WorldAsset` resolves child collisions recursively.
+- Cottage visuals now include a stone foundation, lower and upper wall volumes, taller roof, chimney, door lintel, more windows, sills, wood beams, roof ribs, balcony posts/rail, and a contact shadow.
+- Materials are still shared from `StarterTown` so the extraction does not create unique texture resources per building.
+- This improves the town's visual structure and moves buildings into the same inherited asset/collision pattern as enemies and the debug room.
 
 ## Second Detail Pass
 

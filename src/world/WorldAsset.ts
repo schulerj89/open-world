@@ -5,6 +5,7 @@ export type WorldAssetKind = "town" | "building" | "npc" | "enemy" | "foliage" |
 
 export class WorldAsset extends THREE.Group {
   readonly colliders: CircleCollider[] = [];
+  readonly childAssets: WorldAsset[] = [];
 
   constructor(readonly assetKind: WorldAssetKind, name: string) {
     super();
@@ -13,6 +14,16 @@ export class WorldAsset extends THREE.Group {
 
   addCircleCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"], owner = this.name): void {
     this.colliders.push({ x, z, radius, kind, owner });
+  }
+
+  addChildAsset<T extends WorldAsset>(asset: T): T {
+    this.childAssets.push(asset);
+    this.add(asset);
+    return asset;
+  }
+
+  getColliderCount(): number {
+    return this.colliders.length + this.childAssets.reduce((total, asset) => total + asset.getColliderCount(), 0);
   }
 
   resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
@@ -28,6 +39,11 @@ export class WorldAsset extends THREE.Group {
         hits += 1;
         lastHit = hit;
       }
+    }
+    for (const asset of this.childAssets) {
+      const result = asset.resolveCollisionDetailed(position, actorRadius);
+      hits += result.hits;
+      lastHit = result.lastHit ?? lastHit;
     }
     return { hits, lastHit };
   }

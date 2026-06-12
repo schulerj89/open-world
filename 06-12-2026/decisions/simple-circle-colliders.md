@@ -37,3 +37,5 @@ The debug HUD now includes a `Last hit` row so browser QA can trace whether the 
 The combat debug room adds coordinate-warp coverage for edge cases that are hard to reproduce by walking. Expected `Last hit` examples include `fence / debug-north-wall`, `prop / debug-pillar-0`, `prop / debug-combat-dummy`, and `enemy / Meadow Slime 4`. Exact-center and dense-collider handling matters because the X/Z warp controls can place the player directly inside blockers.
 
 Town owner labels were tightened after the debug-room pass. `Last hit` can now report examples such as `building / cottage--30--16`, `npc / tutorial-guide-npc`, `prop / market-stall-2`, `prop / plaza-statue-base`, or `fence / fence-48--34-86--34` instead of collapsing every town hit to the broad `starter-town` asset name. The collision HUD now breaks blocker counts into tree, town, room, and enemy groups.
+
+Building extraction keeps the same simple collider shape: `TownBuildingAsset` owns one coarse horizontal circle per cottage. The visual mesh is richer than the collider, by design, because this keeps player movement predictable and avoids expensive per-wall/per-window collision tests.

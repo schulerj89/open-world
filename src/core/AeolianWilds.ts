@@ -289,8 +289,8 @@ export class AeolianWilds {
           dragLook: this.controls?.state.dragLook ?? false,
           collisionHits: this.lastCollisionHits,
           collisionDetail: this.lastCollisionDetail,
-          townColliders: this.town?.colliders.length ?? 0,
-          roomColliders: this.debugRoom?.colliders.length ?? 0,
+          townColliders: this.town?.getColliderCount() ?? 0,
+          roomColliders: this.debugRoom?.getColliderCount() ?? 0,
           enemyColliders: this.enemies.filter((actor) => actor.enemy.alive).length
         },
         this.gpuDebug,
