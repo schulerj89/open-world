@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { CharacterClassKey, OutfitVariant } from "../game/Character.js";
+import { createContactShadow } from "./ContactShadow.js";
 
 export type HumanoidModelOptions = {
   classKey?: CharacterClassKey;
@@ -18,6 +19,8 @@ export function createHumanoidModel(options: HumanoidModelOptions): THREE.Group 
   const accent = new THREE.MeshLambertMaterial({ color: options.accentColor });
   const boot = new THREE.MeshLambertMaterial({ color: "#3d2b22" });
   const hair = new THREE.MeshLambertMaterial({ color: "#2a201a" });
+
+  group.add(createContactShadow(0.58, 0.42));
 
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.48, 1.0, 5, 10), cloth);
   body.position.y = 1.85;

@@ -425,7 +425,7 @@ export class AeolianWilds {
       this.rebuildPlayerAvatar();
       this.lastMessage = "Debug equip: swapped outfit colors and gear.";
     } else if (action === "collide" && this.town) {
-      this.player.teleportTo(-25.2, -16, this.streamer.terrain, -Math.PI / 2, this.playerAvatar);
+      this.player.teleportTo(-25.2, -16, this.streamer.terrain, Math.PI / 2, this.playerAvatar);
       this.lastMessage = "Debug collision: placed against a cottage blocker.";
     }
   }

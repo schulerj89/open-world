@@ -30,3 +30,15 @@ The debug HUD now separates blocker counts:
 
 The `0 Collide` quick tool now targets the current expanded cottage collider, and collision hit display holds long enough to be captured in browser QA.
 
+## Second Detail Pass
+
+The next pass improved visible density without multiplying mesh submissions:
+
+- Town roads, plaza stone, cottage walls, roof tiles, and wood trim now use generated procedural town textures instead of flat colors or the dark generic rock texture.
+- Cobblestones, road-edge stones, cottage beams, and roof ridges are batched into a few `InstancedMesh` groups.
+- The plaza paver count increased substantially while draw calls stayed controlled.
+- Cottages gained beam/trim silhouettes and roof ridge detail.
+- Characters, slimes, cottages, stalls, crates, barrels, and hay bales gained cheap contact shadows.
+- The collision debug warp now faces away from the cottage blocker so the camera does not clip under the roof during QA.
+
+This keeps the current procedural asset strategy but moves the town closer to a more authored look: patterned surfaces, layered trim, grounded props, and higher local detail density.

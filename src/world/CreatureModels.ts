@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createContactShadow } from "./ContactShadow.js";
 
 export function createMeadowSlimeModel(): THREE.Group {
   const group = new THREE.Group();
@@ -6,6 +7,8 @@ export function createMeadowSlimeModel(): THREE.Group {
   const bellyMaterial = new THREE.MeshLambertMaterial({ color: "#a6d176" });
   const eyeMaterial = new THREE.MeshLambertMaterial({ color: "#1b2118" });
   const hornMaterial = new THREE.MeshLambertMaterial({ color: "#d6c38a" });
+
+  group.add(createContactShadow(1.55, 1.18));
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(1.45, 18, 12), bodyMaterial);
   body.scale.set(1.15, 0.82, 1);

@@ -1,5 +1,7 @@
 import * as THREE from "three";
+import { getTextureAssets } from "../render/TextureAssets.js";
 import type { CircleCollider } from "./Collision.js";
+import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { createHumanoidModel } from "./HumanoidModel.js";
 import { WorldAsset } from "./WorldAsset.js";
@@ -27,16 +29,21 @@ export class StarterTown extends WorldAsset {
     { x: 110, z: 20 }
   ];
 
-  private readonly cottageMaterial = new THREE.MeshLambertMaterial({ color: "#b9794d" });
-  private readonly roofMaterial = new THREE.MeshLambertMaterial({ color: "#5d3328" });
-  private readonly roadMaterial = new THREE.MeshLambertMaterial({ color: "#a58d62" });
-  private readonly grassMaterial = new THREE.MeshLambertMaterial({ color: "#6faa5e" });
+  private readonly textureAssets = getTextureAssets();
+  private readonly instancedBoxes = new Map<"wood" | "stone" | "darkStone" | "brightStone" | "roof", THREE.Matrix4[]>();
+  private readonly transformPosition = new THREE.Vector3();
+  private readonly transformRotation = new THREE.Quaternion();
+  private readonly transformScale = new THREE.Vector3();
+  private readonly cottageMaterial = new THREE.MeshLambertMaterial({ color: "#cf9164", map: this.textureAssets.townWall });
+  private readonly roofMaterial = new THREE.MeshLambertMaterial({ color: "#9f573f", map: this.textureAssets.townRoof });
+  private readonly roadMaterial = new THREE.MeshLambertMaterial({ color: "#c7b17d", map: this.textureAssets.townRoad });
+  private readonly grassMaterial = new THREE.MeshLambertMaterial({ color: "#6faa5e", map: this.textureAssets.grassColor });
   private readonly markerMaterial = new THREE.MeshLambertMaterial({ color: "#f1c75b" });
-  private readonly stoneMaterial = new THREE.MeshLambertMaterial({ color: "#8d887b" });
-  private readonly darkStoneMaterial = new THREE.MeshLambertMaterial({ color: "#5e615a" });
-  private readonly brightStoneMaterial = new THREE.MeshLambertMaterial({ color: "#a8a092" });
+  private readonly stoneMaterial = new THREE.MeshLambertMaterial({ color: "#a9a18f", map: this.textureAssets.townStone });
+  private readonly darkStoneMaterial = new THREE.MeshLambertMaterial({ color: "#7a766c", map: this.textureAssets.townStone });
+  private readonly brightStoneMaterial = new THREE.MeshLambertMaterial({ color: "#c4baa4", map: this.textureAssets.townStone });
   private readonly trimMaterial = new THREE.MeshLambertMaterial({ color: "#2f493b" });
-  private readonly woodMaterial = new THREE.MeshLambertMaterial({ color: "#7a5234" });
+  private readonly woodMaterial = new THREE.MeshLambertMaterial({ color: "#8c6040", map: this.textureAssets.townWood });
   private readonly flowerMaterial = new THREE.MeshLambertMaterial({ color: "#d87584" });
   private readonly hayMaterial = new THREE.MeshLambertMaterial({ color: "#d9b65f" });
   private readonly lightMaterial = new THREE.MeshBasicMaterial({ color: "#f5c966" });
@@ -79,6 +86,8 @@ export class StarterTown extends WorldAsset {
     this.addFenceLine(48, -34, 86, -34);
     this.addFenceLine(86, -34, 86, 26);
     this.addFenceLine(-62, -24, -62, 30);
+    this.addRoadEdgeStones();
+    this.flushInstancedBoxes();
   }
 
   private addCottage(x: number, z: number, yaw: number, scale = 1): void {
@@ -92,6 +101,7 @@ export class StarterTown extends WorldAsset {
     base.castShadow = false;
     base.receiveShadow = true;
     this.group.add(base);
+    this.addWorldShadow(x, z, width * 0.66, depth * 0.64, yaw);
 
     const roof = new THREE.Mesh(new THREE.ConeGeometry(5.3 * scale, 4.8 * scale, 12), this.roofMaterial);
     roof.position.set(x, this.getHeight(x, z) + wallHeight + 2.25 * scale, z);
@@ -122,6 +132,8 @@ export class StarterTown extends WorldAsset {
     glow.rotation.y = yaw + Math.PI;
     glow.userData.windowGlow = true;
     this.group.add(glow);
+
+    this.addCottageTrimInstances(x, z, yaw, scale, width, depth, wallHeight);
   }
 
   private addPatch(
@@ -141,20 +153,137 @@ export class StarterTown extends WorldAsset {
   }
 
   private addCobblestones(x: number, z: number, width: number, depth: number): void {
-    const stoneGeometry = new THREE.BoxGeometry(1.6, 0.12, 1.2, 1, 1, 1);
-    for (let row = 0; row < 7; row += 1) {
-      for (let col = 0; col < 10; col += 1) {
-        if ((row + col) % 3 === 0) {
+    for (let row = 0; row < 13; row += 1) {
+      for (let col = 0; col < 20; col += 1) {
+        if ((row + col) % 7 === 0) {
           continue;
         }
-        const px = x - width * 0.42 + col * (width / 9.4);
-        const pz = z - depth * 0.38 + row * (depth / 6.4);
-        const stone = new THREE.Mesh(stoneGeometry, (row + col) % 2 === 0 ? this.brightStoneMaterial : this.darkStoneMaterial);
-        stone.position.set(px, this.getHeight(px, pz) + 0.12, pz);
-        stone.rotation.y = ((row * 17 + col * 9) % 11) * 0.08;
-        stone.scale.setScalar(0.75 + ((row + col) % 4) * 0.08);
-        this.group.add(stone);
+        const px = x - width * 0.46 + col * (width / 19.2);
+        const pz = z - depth * 0.42 + row * (depth / 12.2);
+        const stoneScale = 0.75 + ((row * 3 + col) % 5) * 0.055;
+        this.queueBox(
+          (row + col) % 2 === 0 ? "brightStone" : "darkStone",
+          px,
+          this.getHeight(px, pz) + 0.11,
+          pz,
+          1.2 * stoneScale,
+          0.11,
+          0.82 * stoneScale,
+          ((row * 17 + col * 9) % 13) * 0.06
+        );
       }
+    }
+  }
+
+  private addCottageTrimInstances(
+    x: number,
+    z: number,
+    yaw: number,
+    scale: number,
+    width: number,
+    depth: number,
+    wallHeight: number
+  ): void {
+    const yBase = this.getHeight(x, z);
+    const cornerX = width * 0.48;
+    const cornerZ = depth * 0.48;
+    [
+      [-cornerX, -cornerZ],
+      [cornerX, -cornerZ],
+      [-cornerX, cornerZ],
+      [cornerX, cornerZ]
+    ].forEach(([ox, oz]) => {
+      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.5, oz, 0.28 * scale, wallHeight * 1.04, 0.28 * scale);
+    });
+
+    [-cornerZ, cornerZ].forEach((oz) => {
+      this.queueLocalBox("wood", x, z, yaw, 0, yBase + wallHeight * 0.42, oz, width * 1.06, 0.22 * scale, 0.2 * scale);
+      this.queueLocalBox("wood", x, z, yaw, 0, yBase + wallHeight * 0.82, oz, width * 1.08, 0.24 * scale, 0.2 * scale);
+    });
+
+    [-cornerX, cornerX].forEach((ox) => {
+      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.42, 0, 0.2 * scale, 0.22 * scale, depth * 1.06);
+      this.queueLocalBox("wood", x, z, yaw, ox, yBase + wallHeight * 0.82, 0, 0.2 * scale, 0.24 * scale, depth * 1.08);
+    });
+
+    for (let i = -2; i <= 2; i += 1) {
+      const offset = i * width * 0.16;
+      this.queueLocalBox("roof", x, z, yaw + Math.PI * 0.25, offset, yBase + wallHeight + 2.42 * scale, -depth * 0.24, 0.16 * scale, 0.18 * scale, 4.4 * scale);
+      this.queueLocalBox("roof", x, z, yaw + Math.PI * 0.25, offset, yBase + wallHeight + 2.42 * scale, depth * 0.24, 0.16 * scale, 0.18 * scale, 4.4 * scale);
+    }
+  }
+
+  private addRoadEdgeStones(): void {
+    [
+      { x1: -2, z1: -18, x2: 88, z2: -18, count: 25 },
+      { x1: -2, z1: -6, x2: 88, z2: -6, count: 25 },
+      { x1: -64, z1: 0, x2: -10, z2: 0, count: 16 },
+      { x1: -64, z1: 16, x2: -10, z2: 16, count: 16 },
+      { x1: -8, z1: 18, x2: 64, z2: 18, count: 20 },
+      { x1: -8, z1: 30, x2: 64, z2: 30, count: 20 }
+    ].forEach((edge) => {
+      for (let i = 0; i <= edge.count; i += 1) {
+        const t = i / edge.count;
+        const px = THREE.MathUtils.lerp(edge.x1, edge.x2, t);
+        const pz = THREE.MathUtils.lerp(edge.z1, edge.z2, t);
+        this.queueBox("stone", px, this.getHeight(px, pz) + 0.18, pz, 1.15, 0.18, 0.5, (i % 5) * 0.11);
+      }
+    });
+  }
+
+  private queueLocalBox(
+    key: "wood" | "stone" | "darkStone" | "brightStone" | "roof",
+    originX: number,
+    originZ: number,
+    yaw: number,
+    offsetX: number,
+    y: number,
+    offsetZ: number,
+    scaleX: number,
+    scaleY: number,
+    scaleZ: number
+  ): void {
+    const rotatedX = offsetX * Math.cos(yaw) - offsetZ * Math.sin(yaw);
+    const rotatedZ = offsetX * Math.sin(yaw) + offsetZ * Math.cos(yaw);
+    this.queueBox(key, originX + rotatedX, y, originZ + rotatedZ, scaleX, scaleY, scaleZ, yaw);
+  }
+
+  private queueBox(
+    key: "wood" | "stone" | "darkStone" | "brightStone" | "roof",
+    x: number,
+    y: number,
+    z: number,
+    scaleX: number,
+    scaleY: number,
+    scaleZ: number,
+    yaw: number
+  ): void {
+    const matrices = this.instancedBoxes.get(key) ?? [];
+    this.transformPosition.set(x, y, z);
+    this.transformRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.transformScale.set(scaleX, scaleY, scaleZ);
+    matrices.push(new THREE.Matrix4().compose(this.transformPosition, this.transformRotation, this.transformScale));
+    this.instancedBoxes.set(key, matrices);
+  }
+
+  private flushInstancedBoxes(): void {
+    const boxGeometry = new THREE.BoxGeometry(1, 1, 1, 1, 1, 1);
+    const materials: Record<"wood" | "stone" | "darkStone" | "brightStone" | "roof", THREE.Material> = {
+      wood: this.woodMaterial,
+      stone: this.stoneMaterial,
+      darkStone: this.darkStoneMaterial,
+      brightStone: this.brightStoneMaterial,
+      roof: this.roofMaterial
+    };
+
+    for (const [key, matrices] of this.instancedBoxes) {
+      const mesh = new THREE.InstancedMesh(boxGeometry, materials[key], matrices.length);
+      mesh.name = `town-instanced-${key}`;
+      mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+      matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      this.group.add(mesh);
     }
   }
 
@@ -188,6 +317,7 @@ export class StarterTown extends WorldAsset {
       const stall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 2.2, 2, 1, 1), this.cottageMaterial);
       stall.position.set(x + offset, this.getHeight(x + offset, z) + 0.65, z);
       this.group.add(stall);
+      this.addWorldShadow(x + offset, z, 2.25, 1.5, 0);
       this.addCollider(x + offset, z, 2.0, "prop");
       const awning = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.1, 4), index % 2 === 0 ? this.trimMaterial : this.markerMaterial);
       awning.position.set(x + offset, this.getHeight(x + offset, z) + 2.1, z);
@@ -213,6 +343,7 @@ export class StarterTown extends WorldAsset {
       crate.position.set(x, this.getHeight(x, z) + 0.55, z);
       crate.rotation.y = yaw;
       this.group.add(crate);
+      this.addWorldShadow(x, z, 0.9, 0.72, yaw);
       this.addCollider(x, z, 0.85, "prop");
     });
 
@@ -226,6 +357,7 @@ export class StarterTown extends WorldAsset {
       barrel.position.set(x, this.getHeight(x, z) + 0.6, z);
       barrel.rotation.z = 0.04;
       this.group.add(barrel);
+      this.addWorldShadow(x, z, 0.68, 0.56, 0);
       this.addCollider(x, z, 0.7, "prop");
     });
 
@@ -254,6 +386,7 @@ export class StarterTown extends WorldAsset {
       hay.position.set(x, this.getHeight(x, z) + 0.4, z);
       hay.rotation.y = yaw;
       this.group.add(hay);
+      this.addWorldShadow(x, z, 1.45, 0.9, yaw);
       this.addCollider(x, z, 1.25, "prop");
     });
   }
@@ -334,5 +467,12 @@ export class StarterTown extends WorldAsset {
 
   private addCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"]): void {
     this.addCircleCollider(x, z, radius, kind);
+  }
+
+  private addWorldShadow(x: number, z: number, scaleX: number, scaleZ: number, yaw: number): void {
+    const shadow = createContactShadow(scaleX, scaleZ);
+    shadow.position.set(x, this.getHeight(x, z) + 0.045, z);
+    shadow.rotation.y = yaw;
+    this.group.add(shadow);
   }
 }

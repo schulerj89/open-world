@@ -19,7 +19,7 @@ export const performancePresets: Record<PerformancePresetKey, PerformancePreset>
       renderDistance: 5,
       grassDensity: 0.55,
       treeDensity: 0.55,
-      resolutionScale: 0.34
+      resolutionScale: 0.4
     }
   },
   balanced: {
@@ -31,7 +31,7 @@ export const performancePresets: Record<PerformancePresetKey, PerformancePreset>
       renderDistance: 7,
       grassDensity: 0.82,
       treeDensity: 0.82,
-      resolutionScale: 0.42
+      resolutionScale: 0.56
     }
   },
   quality: {
@@ -43,7 +43,7 @@ export const performancePresets: Record<PerformancePresetKey, PerformancePreset>
       renderDistance: 9,
       grassDensity: 1,
       treeDensity: 1,
-      resolutionScale: 0.56
+      resolutionScale: 0.72
     }
   }
 };

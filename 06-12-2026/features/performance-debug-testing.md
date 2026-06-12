@@ -111,3 +111,16 @@ A later visible Chrome pass tested production preview on `127.0.0.1:4203`.
 - `6 Reset` restored the quest to `0 / 2`, cleared the target, and restored live enemy blockers to `3`.
 - `0 Collide` placed the player against the expanded cottage blocker; final HUD showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`.
 - Final collision probe held `60 FPS`, `16.7 ms` frame time, and about `368 calls / 85,224 estimated tris`.
+
+## Sharper Town Detail Visible Audit
+
+A follow-up visible Chrome pass tested production preview on `127.0.0.1:4204`.
+
+- Default and Balanced resolution scale increased from `0.42` to `0.56`; High Quality increased to `0.72`; adaptive resolution now bottoms at `0.32` instead of `0.1`.
+- Title canvas rendered at about `1359x796` to `1464x857` depending on window size, up from the prior visibly softer default.
+- Procedural town textures replaced the dark rock-map reuse on road/stone/roof/wall materials.
+- Instanced pavers, road-edge stones, cottage beams, and roof ridges raised visible town detail while preserving batching.
+- Contact shadows were added under major characters, enemies, buildings, and props without enabling real shadow maps.
+- Town view held `60 FPS` and `16.7 ms` at about `520 calls / 89,196 estimated tris`.
+- Collision probe held `60 FPS`, showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`, and rendered from a corrected camera-facing yaw with about `408 calls / 91,772 estimated tris`.
+- Movement/look/jump, slime strike, `6 Reset`, and `0 Collide` were smoke-tested in Chrome after the visual pass.

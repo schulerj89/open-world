@@ -19,7 +19,7 @@ export class AdaptiveBudget {
       renderDistance: Math.max(1, Math.round(settings.renderDistance * (1 - p * 0.92))),
       grassDensity: Math.max(0.03, settings.grassDensity * (1 - p * 0.9)),
       treeDensity: Math.max(0.06, settings.treeDensity * (1 - p * 0.82)),
-      resolutionScale: Math.max(0.1, settings.resolutionScale * (1 - p * 0.84))
+      resolutionScale: Math.max(0.32, settings.resolutionScale * (1 - p * 0.48))
     };
   }
 
