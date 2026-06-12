@@ -39,3 +39,5 @@ The combat debug room adds coordinate-warp coverage for edge cases that are hard
 Town owner labels were tightened after the debug-room pass. `Last hit` can now report examples such as `building / cottage--30--16`, `npc / tutorial-guide-npc`, `prop / market-stall-2`, `prop / plaza-statue-base`, or `fence / fence-48--34-86--34` instead of collapsing every town hit to the broad `starter-town` asset name. The collision HUD now breaks blocker counts into tree, town, room, and enemy groups.
 
 Building extraction keeps the same simple collider shape: `TownBuildingAsset` owns one coarse horizontal circle per cottage. The visual mesh is richer than the collider, by design, because this keeps player movement predictable and avoids expensive per-wall/per-window collision tests.
+
+NPC extraction keeps one simple circle per townsperson. `TownNpcAsset` owns that collider and reports either `tutorial-guide-npc` or the numbered town NPC label in `Last hit`.

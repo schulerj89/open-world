@@ -20,6 +20,7 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
 - Slimes now use `EnemyAsset` ownership: each enemy owns its combat state, mesh, spawn point, reset behavior, visual pulse, and circle collider.
+- Townspeople now use `TownNpcAsset` ownership: each NPC owns its humanoid model, idle metadata, and circle collider.
 - The combat debug room is a separate non-town `WorldAsset` collision sandbox with wall, pillar, dummy, and arena-enemy blockers.
 
 ## Debug Support
@@ -42,6 +43,16 @@ The cottage mesh/collider path was moved into `TownBuildingAsset extends WorldAs
 - Cottage visuals now include a stone foundation, lower and upper wall volumes, taller roof, chimney, door lintel, more windows, sills, wood beams, roof ribs, balcony posts/rail, and a contact shadow.
 - Materials are still shared from `StarterTown` so the extraction does not create unique texture resources per building.
 - This improves the town's visual structure and moves buildings into the same inherited asset/collision pattern as enemies and the debug room.
+
+## NPC Asset Extraction
+
+The townsperson mesh/collider path was moved into `TownNpcAsset extends WorldAsset`.
+
+- Each NPC is registered as a `StarterTown` child asset.
+- Each NPC owns one circle collider and keeps its owner label for debug hits.
+- The guide NPC still reports `tutorial-guide-npc`, preserving the tutorial collision/debug identity.
+- Idle bob/turn moved onto the asset itself through `TownNpcAsset.update`, so NPC animation is no longer coupled to the core app's scene traversal.
+- Building window glow animation also moved onto `TownBuildingAsset.update`; `StarterTown.update` now recursively updates child assets and only owns the quest marker bob/rotation.
 
 ## Second Detail Pass
 

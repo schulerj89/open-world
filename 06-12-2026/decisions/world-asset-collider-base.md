@@ -18,6 +18,7 @@ The town was the first asset group with many blockers, but the same pattern will
 - `addCircleCollider`, for asset construction.
 - `addChildAsset`, for parent assets such as towns that own building or prop assets.
 - `getColliderCount`, for recursive debug counts.
+- `update`, for per-frame child asset behavior.
 - `resolveCollision`, for callers that only need a hit count.
 - `resolveCollisionDetailed`, for callers that need the most recent collider source and push metadata. This resolves the asset's own colliders and any registered child assets.
 
@@ -42,3 +43,11 @@ Town colliders now carry object-level owner labels instead of reporting only `st
 `TownBuildingAsset` now represents each cottage as a `WorldAsset` child of `StarterTown`. The town registers each cottage with `addChildAsset`, and recursive collision resolution keeps the building collider active without flattening it into `StarterTown.colliders`. The HUD uses `getColliderCount()` so extracted child assets remain visible in town blocker counts.
 
 The building asset owns its foundation, lower and upper wall volumes, roof, chimney, door, windows, trim, balcony, contact shadow, and one coarse building circle collider. This makes buildings follow the same inheritance/collision pattern as enemies and the debug room while keeping collision simple.
+
+## June 12 NPC Asset Extraction
+
+`TownNpcAsset` now represents each townsperson as a `WorldAsset` child of `StarterTown`. Each NPC owns its humanoid model, idle animation, and one circle collider. The tutorial guide keeps the owner label `tutorial-guide-npc`, while other townspeople report labels such as `town-npc-2`.
+
+This moves people into the same inherited asset/collision path as buildings, enemies, and the debug room. Recursive collision resolution and `getColliderCount()` keep NPC blockers active and visible after extraction.
+
+The town no longer scans every object for `idleNpc` and `windowGlow` flags from the core app loop. `AeolianWilds` calls `StarterTown.update(elapsed)`, then the town updates child assets recursively. `TownNpcAsset` owns NPC idle bob/turn behavior, `TownBuildingAsset` owns window glow animation, and `StarterTown` keeps the quest marker bob/rotation.

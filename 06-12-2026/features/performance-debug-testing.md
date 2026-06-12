@@ -209,3 +209,15 @@ A visible in-app browser check on `127.0.0.1:4208` verified the `TownBuildingAss
 - WebGPU still reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
 - No browser console warnings or errors were captured.
 - This in-app browser run again showed RAF throttling around `1 FPS` with low render submit time (`render 5.3 ms`), so it verifies the building asset/collision path and diagnostics but not final 60 FPS performance.
+
+## NPC Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownNpcAsset` extraction.
+
+- Coordinate warp to the guide NPC at `X -2 / Z 2` reported `Last hit npc / tutorial-guide-npc / push 1.48 / at X -2.0 Z 2.0`.
+- Recursive town collider counting preserved the expected town blocker count: `Collision 2 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`.
+- Render debug reported about `76 calls / 107,200 estimated tris` in the guide collision view.
+- WebGPU still reported adapter ready, core mode, `bgra8unorm`, `19` features, `16384px texture`, and `48` sampled textures.
+- A 1.6 second guide-view screenshot comparison changed by `235,560` bytes, confirming visible animation still updates after moving NPC idle and building window glow into asset `update()` hooks.
+- No browser console warnings or errors were captured.
+- This in-app browser run also remained RAF-throttled around `1 FPS` with low render submit time (`render 3.2 ms`), so it verifies the NPC asset/collision/update path and diagnostics but not final 60 FPS performance.

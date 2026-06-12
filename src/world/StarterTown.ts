@@ -3,8 +3,8 @@ import { getTextureAssets } from "../render/TextureAssets.js";
 import type { CircleCollider } from "./Collision.js";
 import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
-import { createHumanoidModel } from "./HumanoidModel.js";
 import { TownBuildingAsset } from "./TownBuildingAsset.js";
+import { TownNpcAsset } from "./TownNpcAsset.js";
 import { WorldAsset } from "./WorldAsset.js";
 
 export type EnemySpawn = {
@@ -56,6 +56,19 @@ export class StarterTown extends WorldAsset {
 
   getHeight(x: number, z: number): number {
     return this.heights.getHeight(x, z);
+  }
+
+  override update(elapsed: number): void {
+    super.update(elapsed);
+    for (const object of this.children) {
+      if (!object.userData.questMarker) {
+        continue;
+      }
+
+      const baseY = Number(object.userData.baseY) || object.position.y;
+      object.position.y = baseY + Math.sin(elapsed * 2.8) * 0.22;
+      object.rotation.y += 0.035;
+    }
   }
 
   private buildTown(): void {
@@ -441,21 +454,18 @@ export class StarterTown extends WorldAsset {
 
   private addNpcs(): void {
     this.npcPositions.forEach((npc, index) => {
-      const model = createHumanoidModel({
-        primaryColor: npc.primaryColor,
-        accentColor: npc.accentColor,
-        outfitVariant: index % 2 === 0 ? "traveler" : "guard",
-        scale: 1.15
-      });
-      model.position.set(npc.x, this.getHeight(npc.x, npc.z) + 0.08, npc.z);
-      model.rotation.y = npc.yaw;
-      model.name = `starter-town-npc-${index}`;
-      model.userData.idleNpc = true;
-      model.userData.baseY = model.position.y;
-      model.userData.baseYaw = npc.yaw;
-      model.userData.phase = index * 1.7;
-      this.group.add(model);
-      this.addCollider(npc.x, npc.z, 0.95, "npc", npc.guide ? "tutorial-guide-npc" : `town-npc-${index + 1}`);
+      this.addChildAsset(
+        new TownNpcAsset({
+          index,
+          x: npc.x,
+          z: npc.z,
+          yaw: npc.yaw,
+          primaryColor: npc.primaryColor,
+          accentColor: npc.accentColor,
+          guide: npc.guide,
+          heights: this.heights
+        })
+      );
     });
   }
 

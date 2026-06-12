@@ -26,6 +26,12 @@ export class WorldAsset extends THREE.Group {
     return this.colliders.length + this.childAssets.reduce((total, asset) => total + asset.getColliderCount(), 0);
   }
 
+  update(elapsed: number): void {
+    for (const asset of this.childAssets) {
+      asset.update(elapsed);
+    }
+  }
+
   resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
     return this.resolveCollisionDetailed(position, actorRadius).hits;
   }

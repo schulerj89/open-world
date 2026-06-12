@@ -30,6 +30,7 @@ export class TownBuildingAsset extends WorldAsset {
   private readonly modelScale: number;
   private readonly heights: HeightSampler;
   private readonly materials: TownBuildingMaterials;
+  private readonly glowingWindows: THREE.Object3D[] = [];
 
   constructor(config: TownBuildingConfig) {
     super("building", `cottage-${Math.round(config.x)}-${Math.round(config.z)}`);
@@ -126,7 +127,7 @@ export class TownBuildingAsset extends WorldAsset {
       pane.position.set(this.x + local.x, baseY + 0.72 * this.modelScale + oy, this.z + local.z);
       pane.rotation.y = oz > 0 ? this.yaw : this.yaw + Math.PI;
       if (index % 3 === 0) {
-        pane.userData.windowGlow = true;
+        this.glowingWindows.push(pane);
       }
       this.add(pane);
 
@@ -198,5 +199,13 @@ export class TownBuildingAsset extends WorldAsset {
       x: offsetX * Math.cos(this.yaw) - offsetZ * Math.sin(this.yaw),
       z: offsetX * Math.sin(this.yaw) + offsetZ * Math.cos(this.yaw)
     };
+  }
+
+  override update(elapsed: number): void {
+    super.update(elapsed);
+    this.glowingWindows.forEach((window, index) => {
+      const glow = 0.88 + Math.sin(elapsed * 3.4 + this.x * 0.11 + index * 0.7) * 0.12;
+      window.scale.setScalar(glow);
+    });
   }
 }

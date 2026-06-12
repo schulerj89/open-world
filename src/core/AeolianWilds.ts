@@ -257,12 +257,12 @@ export class AeolianWilds {
         this.resolvePlayerCollisions(position, radius)
       );
       this.animatePlayerAttack(elapsed);
-      this.animateTown(elapsed);
+      this.town?.update(elapsed);
       this.updateEnemies(elapsed);
     } else {
       this.player.setTitleOrbit(elapsed, 138, this.streamer.terrain);
       this.positionPreviewAvatar(elapsed);
-      this.animateTown(elapsed);
+      this.town?.update(elapsed);
     }
     this.updateFloatingLabels(elapsed);
     const updateMs = performance.now() - updateStart;
@@ -759,33 +759,6 @@ export class AeolianWilds {
     }
 
     return `${hit.kind} / ${hit.owner} / push ${hit.push.toFixed(2)} / at X ${hit.colliderX.toFixed(1)} Z ${hit.colliderZ.toFixed(1)}`;
-  }
-
-  private animateTown(elapsed: number): void {
-    this.town?.group.traverse((object) => {
-      if (object.userData.questMarker) {
-        const baseY = Number(object.userData.baseY) || object.position.y;
-        object.position.y = baseY + Math.sin(elapsed * 2.8) * 0.22;
-        object.rotation.y += 0.035;
-        return;
-      }
-
-      if (object.userData.windowGlow) {
-        const glow = 0.88 + Math.sin(elapsed * 3.4 + object.position.x * 0.11) * 0.12;
-        object.scale.setScalar(glow);
-        return;
-      }
-
-      if (!object.userData.idleNpc) {
-        return;
-      }
-
-      const phase = Number(object.userData.phase) || 0;
-      const baseY = Number(object.userData.baseY) || object.position.y;
-      const baseYaw = Number(object.userData.baseYaw) || object.rotation.y;
-      object.position.y = baseY + Math.sin(elapsed * 2.1 + phase) * 0.035;
-      object.rotation.y = baseYaw + Math.sin(elapsed * 0.85 + phase) * 0.18;
-    });
   }
 
   private getGameHudState(): Parameters<Overlay["updateGameHud"]>[0] {

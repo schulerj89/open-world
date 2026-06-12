@@ -14,7 +14,7 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 ### Starter Town, Character, And Enemy Surface Shaders
 
-- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/TownBuildingAsset.ts`, `src/world/CombatDebugRoom.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
+- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/TownBuildingAsset.ts`, `src/world/TownNpcAsset.ts`, `src/world/CombatDebugRoom.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
 - Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
 - Inputs: higher-segment town prop geometry, procedural town textures, terrain-conforming ground patch geometry, debug-room floor/wall/pillar/dummy geometry, instanced pavers/trim/roof ridges/ground detail, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
 - Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
@@ -26,6 +26,8 @@ The June 12 town polish pass keeps custom visual motion in object transforms ins
 The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, road, wall, roof, and wood surfaces. These still flow through Three's material shader compilation path; they are not custom GLSL/WGSL shaders. Contact shadows use transparent `MeshBasicMaterial` circles as cheap blob shadows, intentionally avoiding renderer shadow maps. Terrain-conforming plaza and road patches are generated as custom `BufferGeometry` on the CPU, then rendered through the same Lambert material shader path.
 
 `TownBuildingAsset` uses the same renderer-native shader path for richer cottages: Lambert-lit wall, roof, stone, trim, wood, and window meshes plus basic-material glow panes. The extraction changes ownership and mesh detail, not the shader family.
+
+`TownNpcAsset` uses `createHumanoidModel`, so townspeople share the same Lambert-lit procedural character shader path as the player preview, player avatar, and other humanoids. The extraction changes ownership and collision, not the material path.
 
 `CombatDebugRoom` uses the same renderer-native shader path: Lambert-lit floor, walls, pillars, spawn rings, and dummy geometry. The room is intentionally procedural and does not require web assets. Combat-room motion remains CPU transform animation for the player, slime, hit pulse, and selection ring; WebGPU data is used for diagnostics rather than direct WGSL/device-level control.
 
