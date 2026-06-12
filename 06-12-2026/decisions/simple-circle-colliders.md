@@ -47,3 +47,5 @@ Ground extraction does not add collision. `TownGroundAsset` is walkable visual f
 Plaza extraction keeps the same simple collider shape and debug identity. `TownPlazaAsset` owns the central statue blocker as one `prop / plaza-statue-base` circle, while the paved disc and stone rings remain walkable visual geometry.
 
 Market extraction keeps one simple collider per stall. `TownMarketAsset` owns the three `prop / market-stall-*` circles while its counters, produce, lanterns, and awning posts remain visual detail inside the same asset.
+
+Fence extraction keeps the original sampled-circle path. `TownFenceLineAsset` owns each fence rail plus its `fence / fence-...` colliders, using the same `0.55` radius and endpoint-derived owner labels as the inline town implementation.

@@ -19,7 +19,7 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 - Walkable stone, road, training-yard, and meadow surfaces are now `TownGroundAsset` child assets instead of inline `StarterTown` meshes.
 - The central plaza/statue is now a `TownPlazaAsset` child asset with its own statue collider.
 - Market stalls are now a `TownMarketAsset` child asset with stall colliders and local visual detail.
-- Fences use sampled circle colliders along the rail.
+- Fence runs are now `TownFenceLineAsset` child assets with sampled circle colliders along each rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
 - Slimes now use `EnemyAsset` ownership: each enemy owns its combat state, mesh, spawn point, reset behavior, visual pulse, and circle collider.
@@ -83,6 +83,15 @@ The market stall path was moved into `TownMarketAsset extends WorldAsset`.
 - It owns all three stalls, their awnings, counters, awning posts, produce piles, hanging lanterns, contact shadows, and collider labels.
 - The old debug labels are preserved as `market-stall-1`, `market-stall-2`, and `market-stall-3`.
 - Each stall keeps one coarse prop collider so the richer visual counters and produce do not create snaggy per-object movement blockers.
+
+## Fence Asset Extraction
+
+The fence-run path was moved into `TownFenceLineAsset extends WorldAsset`.
+
+- Each fence run is registered as a `StarterTown` child asset.
+- Each asset owns one long rail mesh, repeated post detail, and sampled circle colliders along the line.
+- The collider kind stays `fence`, radius stays `0.55`, and owner labels preserve the old endpoint format such as `fence-48--34-86--34`.
+- The collider sampling rule stays `Math.max(2, Math.ceil(length / 4))` with an inclusive loop, preserving the expected `81 town` blocker count after extraction.
 
 ## Second Detail Pass
 

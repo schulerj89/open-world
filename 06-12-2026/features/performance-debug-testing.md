@@ -260,3 +260,17 @@ A visible in-app browser check on `127.0.0.1:4208` verified the `TownMarketAsset
 - Render debug in the market smoke view reported about `1019 calls / 130,684 estimated tris`, with `869 geos / 11 tex`.
 - One warmed in-app browser sample reached `60 FPS`, `RAF 16.5 ms`, and render submit around `3.5 ms`; the earlier market warp sample was `30 FPS`, `RAF 67.0 ms`, and render submit around `2.8 ms`.
 - No browser console warnings or errors were captured.
+
+## Fence Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownFenceLineAsset` extraction.
+
+- Coordinate warp to `X 60 / Z -34` resolved the extracted southern east fence child asset and reported `Collision 1 hits / 22 tree / 81 town / 55 room / 4 enemy blockers`.
+- The first fence sample reported `Last hit fence / fence-48--34-86--34 / push 0.67 / at X 59.4 Z -34.0`, preserving the endpoint-derived fence label after extraction.
+- Movement/look/jump smoke testing changed HUD values to `Position X 60.7 / Y 9.8 / Z -34.0`, `Look Yaw -50.4 / Pitch 16.0`, `Speed 6.2 u/s`, and `Grounded no`.
+- After movement along the fence, the HUD still reported `Last hit fence / fence-48--34-86--34 / push 0.05 / at X 59.4 Z -34.0` with `81 town` blockers.
+- Extra coordinate warps exercised the other two extracted fence runs: `fence / fence-86--34-86-26 / push 0.00 / at X 86.0 Z -2.0` and `fence / fence--62--24--62-30 / push 1.27 / at X -62.0 Z 3.0`.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
+- Render debug in the fence smoke view reported about `886 calls / 111,068 estimated tris`, with `835 geos / 11 tex`; the west-fence view reported about `879 calls / 107,808 estimated tris`, with `839 geos / 11 tex`.
+- This in-app browser pass held around `29-30 FPS`, `RAF 33.1-35.6 ms`, and render submit around `1.1-2.5 ms`, so it verifies fence behavior and diagnostics but not the final 60 FPS target.
+- No browser console warnings or errors were captured.

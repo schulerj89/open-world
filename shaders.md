@@ -14,7 +14,7 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 ### Starter Town, Character, And Enemy Surface Shaders
 
-- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/TownGroundAsset.ts`, `src/world/TownBuildingAsset.ts`, `src/world/TownNpcAsset.ts`, `src/world/TownPlazaAsset.ts`, `src/world/TownMarketAsset.ts`, `src/world/CombatDebugRoom.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
+- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/TownGroundAsset.ts`, `src/world/TownBuildingAsset.ts`, `src/world/TownNpcAsset.ts`, `src/world/TownPlazaAsset.ts`, `src/world/TownMarketAsset.ts`, `src/world/TownFenceLineAsset.ts`, `src/world/CombatDebugRoom.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
 - Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
 - Inputs: higher-segment town prop geometry, procedural town textures, terrain-conforming ground patch geometry, debug-room floor/wall/pillar/dummy geometry, instanced pavers/trim/roof ridges/ground detail, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
 - Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
@@ -34,6 +34,8 @@ The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, 
 `TownPlazaAsset` uses the same renderer-native shader path for the central paved disc, stone rings, statue base, cap, and marker crystal. The crystal animation is CPU transform motion on a Lambert-lit mesh; no raw GLSL/WGSL shader is introduced for this pass.
 
 `TownMarketAsset` uses the same renderer-native shader path for stalls, awnings, counters, awning posts, produce meshes, lanterns, and contact shadows. Lantern pulse remains CPU transform animation on basic-material meshes, keeping WebGPU compatibility through Three's material pipeline.
+
+`TownFenceLineAsset` uses the same renderer-native Lambert material shader path for fence rails and repeated post detail. Fence extraction changes mesh/collider ownership, not the shader family.
 
 `CombatDebugRoom` uses the same renderer-native shader path: Lambert-lit floor, walls, pillars, spawn rings, and dummy geometry. The room is intentionally procedural and does not require web assets. Combat-room motion remains CPU transform animation for the player, slime, hit pulse, and selection ring; WebGPU data is used for diagnostics rather than direct WGSL/device-level control.
 

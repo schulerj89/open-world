@@ -4,6 +4,7 @@ import type { CircleCollider } from "./Collision.js";
 import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { TownBuildingAsset } from "./TownBuildingAsset.js";
+import { TownFenceLineAsset } from "./TownFenceLineAsset.js";
 import { TownGroundAsset } from "./TownGroundAsset.js";
 import { TownMarketAsset } from "./TownMarketAsset.js";
 import { TownNpcAsset } from "./TownNpcAsset.js";
@@ -481,26 +482,16 @@ export class StarterTown extends WorldAsset {
   }
 
   private addFenceLine(x1: number, z1: number, x2: number, z2: number): void {
-    const length = Math.hypot(x2 - x1, z2 - z1);
-    const yaw = Math.atan2(x2 - x1, z2 - z1);
-    const x = (x1 + x2) / 2;
-    const z = (z1 + z2) / 2;
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.1, length, 1, 2, Math.max(1, Math.round(length / 5))), this.roofMaterial);
-    rail.position.set(x, this.getHeight(x, z) + 1.1, z);
-    rail.rotation.y = yaw;
-    this.group.add(rail);
-
-    const samples = Math.max(2, Math.ceil(length / 4));
-    for (let i = 0; i <= samples; i += 1) {
-      const t = i / samples;
-      this.addCollider(
-        THREE.MathUtils.lerp(x1, x2, t),
-        THREE.MathUtils.lerp(z1, z2, t),
-        0.55,
-        "fence",
-        `fence-${Math.round(x1)}-${Math.round(z1)}-${Math.round(x2)}-${Math.round(z2)}`
-      );
-    }
+    this.addChildAsset(
+      new TownFenceLineAsset({
+        x1,
+        z1,
+        x2,
+        z2,
+        heights: this.heights,
+        material: this.roofMaterial
+      })
+    );
   }
 
   private addCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"], owner = this.name): void {

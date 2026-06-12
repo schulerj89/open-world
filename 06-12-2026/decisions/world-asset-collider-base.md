@@ -69,3 +69,9 @@ The collider owner label stays `plaza-statue-base`, so existing browser QA and H
 `TownMarketAsset` now represents the Briar Glen market stalls as a `WorldAsset` child of `StarterTown`. It owns the three stall meshes, awnings, counters, awning posts, produce props, hanging lanterns, contact shadows, and three coarse prop colliders.
 
 The collider owner labels stay `market-stall-1`, `market-stall-2`, and `market-stall-3`, so the HUD can still distinguish market blockers after the colliders moved out of `StarterTown.colliders` and into the child asset tree.
+
+## June 12 Fence Asset Extraction
+
+`TownFenceLineAsset` now represents each Briar Glen fence run as a `WorldAsset` child of `StarterTown`. Each asset owns its rail mesh, repeated post detail, and sampled fence colliders.
+
+The collider owner labels keep the old endpoint format, such as `fence-48--34-86--34`, and the sampling rule remains unchanged. This preserves recursive collision behavior and the expected town blocker count while moving another large static blocker group out of the town class.
