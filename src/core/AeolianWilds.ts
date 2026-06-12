@@ -7,19 +7,21 @@ import { resolvePerformanceSettings, type PerformancePresetKey } from "../game/P
 import { createTutorialQuest, getTutorialInstruction, recordTutorialKill, type TutorialQuestState } from "../game/QuestSystem.js";
 import { createRenderer, configureRenderer, type WebGpuDebugInfo } from "../render/RendererFactory";
 import { Overlay } from "../ui/Overlay";
+import { createMeadowSlimeModel } from "../world/CreatureModels.js";
+import { createHumanoidModel } from "../world/HumanoidModel.js";
 import { createSky } from "../world/Sky";
 import { StarterTown } from "../world/StarterTown.js";
 import { WorldStreamer } from "../world/WorldStreamer";
 import { AdaptiveBudget } from "./AdaptiveBudget";
-import { FirstPersonController } from "./FirstPersonController";
 import { InputController, type InputActions } from "./InputController";
 import { PerformanceMonitor } from "./PerformanceMonitor";
+import { ThirdPersonController } from "./ThirdPersonController";
 
 type Mode = "title" | "playing" | "settings";
 
 type EnemyActor = {
   enemy: EnemyState;
-  mesh: THREE.Mesh;
+  mesh: THREE.Group;
   spawn: {
     x: number;
     z: number;
@@ -36,10 +38,12 @@ export class AeolianWilds {
   private readonly performance = new PerformanceMonitor();
   private readonly adaptiveBudget = new AdaptiveBudget();
   private readonly sound = new AmbientSound();
-  private readonly enemyGeometry = new THREE.IcosahedronGeometry(1.65, 1);
-  private readonly enemyMaterial = new THREE.MeshLambertMaterial({ color: "#6ba65f" });
-  private readonly selectedEnemyMaterial = new THREE.MeshLambertMaterial({ color: "#dcb55f" });
-  private readonly defeatedEnemyMaterial = new THREE.MeshLambertMaterial({ color: "#384033" });
+  private readonly playerAvatar = new THREE.Group();
+  private readonly selectionRing = new THREE.Mesh(
+    new THREE.TorusGeometry(2.2, 0.08, 8, 32),
+    new THREE.MeshBasicMaterial({ color: "#f0c45b" })
+  );
+  private playerModel?: THREE.Group;
   private renderer?: THREE.WebGLRenderer;
   private gpuDebug: WebGpuDebugInfo = {
     supported: false,
@@ -47,7 +51,7 @@ export class AeolianWilds {
     adapterAvailable: false
   };
   private controls?: InputController;
-  private player: FirstPersonController;
+  private player: ThirdPersonController;
   private town?: StarterTown;
   private character: PlayerCharacter = createCharacter({ name: "Rowan", classKey: "sentinel" });
   private quest: TutorialQuestState = createTutorialQuest();
@@ -65,9 +69,12 @@ export class AeolianWilds {
       onStart: (draft) => void this.enterWorld(draft),
       onOpenSettings: () => this.openSettings(),
       onCloseSettings: () => this.closeSettings(),
-      onPerformanceChange: (preset, memoryBudgetMb) => this.updatePerformancePreset(preset, memoryBudgetMb)
+      onPerformanceChange: (preset, memoryBudgetMb) => this.updatePerformancePreset(preset, memoryBudgetMb),
+      onToggleDebug: () => this.toggleDebug(),
+      onBackToMenu: () => this.returnToMenu(),
+      onDebugAction: (action) => this.runDebugAction(action)
     });
-    this.player = new FirstPersonController(this.camera);
+    this.player = new ThirdPersonController(this.camera);
   }
 
   async start(): Promise<void> {
@@ -76,6 +83,12 @@ export class AeolianWilds {
     this.scene.add(createSky());
     this.scene.add(this.streamer.group);
     this.addLights();
+    this.playerAvatar.name = "player-avatar";
+    this.playerAvatar.visible = false;
+    this.scene.add(this.playerAvatar);
+    this.selectionRing.rotation.x = Math.PI / 2;
+    this.selectionRing.visible = false;
+    this.scene.add(this.selectionRing);
     this.town = new StarterTown(this.streamer.terrain);
     this.scene.add(this.town.group);
     this.spawnEnemies();
@@ -100,14 +113,35 @@ export class AeolianWilds {
     this.selectedEnemyId = "";
     this.lastMessage = "Welcome to Briar Glen. Follow the road east to find meadow slimes.";
     this.resetEnemies();
+    this.rebuildPlayerAvatar();
     if (this.town) {
-      this.player.teleportTo(this.town.playerSpawn.x, this.town.playerSpawn.z, this.streamer.terrain, this.town.playerSpawn.yaw);
+      this.player.teleportTo(
+        this.town.playerSpawn.x,
+        this.town.playerSpawn.z,
+        this.streamer.terrain,
+        this.town.playerSpawn.yaw,
+        this.playerAvatar
+      );
     }
+    this.playerAvatar.visible = true;
     this.mode = "playing";
     this.overlay.setPlaying(true);
     this.overlay.showSettings(false);
     await this.sound.start();
     this.controls?.requestPointerLock();
+  }
+
+  private returnToMenu(): void {
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+    this.mode = "title";
+    this.modeBeforeSettings = "title";
+    this.playerAvatar.visible = false;
+    this.selectionRing.visible = false;
+    this.overlay.showSettings(false);
+    this.overlay.setPlaying(false);
+    this.lastMessage = "Returned to the character menu.";
   }
 
   private openSettings(): void {
@@ -152,7 +186,7 @@ export class AeolianWilds {
 
     if (this.mode === "playing" && this.controls) {
       this.handleGameplayActions(this.controls.consumeActions());
-      this.player.update(delta, this.controls, this.streamer.terrain);
+      this.player.update(delta, this.controls, this.streamer.terrain, this.playerAvatar);
       this.updateEnemies(elapsed);
     } else {
       this.player.setTitleOrbit(elapsed, 138, this.streamer.terrain);
@@ -175,13 +209,15 @@ export class AeolianWilds {
           pointerLocked: this.controls?.state.pointerLocked ?? false,
           dragLook: this.controls?.state.dragLook ?? false
         },
-        this.gpuDebug
+        this.gpuDebug,
+        this.getRenderDebugState()
       );
       if (this.mode === "playing") {
         this.overlay.updateGameHud(this.getGameHudState());
       }
     }
 
+    this.renderer?.info.reset();
     this.renderer?.render(this.scene, this.camera);
   };
 
@@ -228,11 +264,9 @@ export class AeolianWilds {
     }
 
     this.town.enemySpawns.forEach((spawn, index) => {
-      const mesh = new THREE.Mesh(this.enemyGeometry, this.enemyMaterial);
+      const mesh = createMeadowSlimeModel();
       mesh.name = `enemy-meadow-slime-${index}`;
-      mesh.position.set(spawn.x, this.streamer.terrain.getHeight(spawn.x, spawn.z) + 1.55, spawn.z);
-      mesh.castShadow = false;
-      mesh.receiveShadow = true;
+      mesh.position.set(spawn.x, this.streamer.terrain.getHeight(spawn.x, spawn.z), spawn.z);
       this.scene.add(mesh);
       this.enemies.push({
         enemy: createBeginnerEnemy(index),
@@ -246,15 +280,34 @@ export class AeolianWilds {
     this.enemies.forEach((actor, index) => {
       actor.enemy = createBeginnerEnemy(index);
       actor.mesh.visible = true;
-      actor.mesh.material = this.enemyMaterial;
       actor.mesh.scale.setScalar(1);
     });
   }
 
   private handleGameplayActions(actions: InputActions): void {
     if (actions.toggleDebug) {
-      const visible = this.overlay.toggleDebug();
-      this.lastMessage = visible ? "Debug panel enabled. Watch position, look, tree, and WebGPU data." : "Debug panel hidden.";
+      this.toggleDebug();
+    }
+
+    if (actions.backToMenu) {
+      this.returnToMenu();
+      return;
+    }
+
+    if (actions.warpTown) {
+      this.runDebugAction("town");
+    }
+
+    if (actions.warpSlimes) {
+      this.runDebugAction("slimes");
+    }
+
+    if (actions.equipDebug) {
+      this.runDebugAction("equip");
+    }
+
+    if (actions.jump) {
+      this.player.requestJump();
     }
 
     if (actions.targetNext) {
@@ -269,6 +322,31 @@ export class AeolianWilds {
       const result = healCharacter(this.character, 28);
       this.character = result.character;
       this.lastMessage = result.healed > 0 ? `Mend restored ${result.healed} HP.` : "Mend had no effect at full HP.";
+    }
+  }
+
+  private toggleDebug(): void {
+    const visible = this.overlay.toggleDebug();
+    this.lastMessage = visible ? "Debug panel enabled. Use 7 town, 8 slimes, 9 equip, M menu." : "Debug panel hidden.";
+  }
+
+  private runDebugAction(action: "town" | "slimes" | "equip"): void {
+    if (action === "town" && this.town) {
+      this.player.teleportTo(this.town.playerSpawn.x, this.town.playerSpawn.z, this.streamer.terrain, this.town.playerSpawn.yaw, this.playerAvatar);
+      this.lastMessage = "Debug warp: returned to Briar Glen.";
+    } else if (action === "slimes" && this.town) {
+      const spawn = this.town.enemySpawns.find((candidate) => this.enemies.some((actor) => actor.enemy.alive && actor.spawn === candidate)) ?? this.town.enemySpawns[0];
+      this.player.teleportTo(spawn.x - 8, spawn.z + 5, this.streamer.terrain, -1.4, this.playerAvatar);
+      this.lastMessage = "Debug warp: moved near meadow slimes.";
+    } else if (action === "equip") {
+      this.character = {
+        ...this.character,
+        primaryColor: "#2f86d1",
+        accentColor: "#f0c45b",
+        outfitVariant: this.character.outfitVariant === "mage" ? "guard" : "mage"
+      };
+      this.rebuildPlayerAvatar();
+      this.lastMessage = "Debug equip: swapped outfit colors and gear.";
     }
   }
 
@@ -316,7 +394,6 @@ export class AeolianWilds {
 
     if (result.defeated) {
       actor.mesh.visible = false;
-      actor.mesh.material = this.defeatedEnemyMaterial;
       this.quest = recordTutorialKill(this.quest);
       this.lastMessage = `Defeated ${actor.enemy.name}. +${result.goldAwarded} gold.`;
       this.selectedEnemyId = "";
@@ -331,10 +408,16 @@ export class AeolianWilds {
     this.enemies.forEach((actor, index) => {
       const height = this.streamer.terrain.getHeight(actor.spawn.x, actor.spawn.z);
       const selected = actor.enemy.id === this.selectedEnemyId;
-      actor.mesh.position.set(actor.spawn.x, height + 1.45 + Math.sin(elapsed * 2 + index) * 0.12, actor.spawn.z);
+      actor.mesh.position.set(actor.spawn.x, height + Math.sin(elapsed * 2 + index) * 0.12, actor.spawn.z);
       actor.mesh.rotation.y += 0.012 + index * 0.002;
-      actor.mesh.material = selected ? this.selectedEnemyMaterial : this.enemyMaterial;
+      if (selected) {
+        this.selectionRing.visible = true;
+        this.selectionRing.position.set(actor.spawn.x, height + 0.12, actor.spawn.z);
+      }
     });
+    if (!this.getSelectedEnemy()) {
+      this.selectionRing.visible = false;
+    }
   }
 
   private getSelectedEnemy(): EnemyActor | undefined {
@@ -360,15 +443,79 @@ export class AeolianWilds {
     };
   }
 
+  private getRenderDebugState(): Parameters<Overlay["updateHud"]>[6] {
+    const info = this.renderer?.info;
+    const rendererTriangles = info?.render.triangles ?? 0;
+    const estimatedTriangles = rendererTriangles <= 0;
+    const estimatedCalls = this.estimateVisibleDrawCalls();
+    const rendererCalls = info?.render.calls ?? 0;
+    return {
+      calls: rendererCalls <= 0 || rendererCalls > estimatedCalls * 1.8 ? estimatedCalls : rendererCalls,
+      triangles: estimatedTriangles ? this.estimateVisibleTriangles() : rendererTriangles,
+      estimatedTriangles,
+      geometries: info?.memory.geometries ?? 0,
+      textures: info?.memory.textures ?? 0
+    };
+  }
+
+  private estimateVisibleDrawCalls(): number {
+    let calls = 0;
+
+    this.scene.traverseVisible((object) => {
+      const mesh = object as THREE.Mesh | THREE.InstancedMesh;
+      if (!("isMesh" in mesh) && !("isInstancedMesh" in mesh)) {
+        return;
+      }
+
+      calls += Array.isArray(mesh.material) ? mesh.material.length : 1;
+    });
+
+    return calls;
+  }
+
+  private estimateVisibleTriangles(): number {
+    let triangles = 0;
+
+    this.scene.traverseVisible((object) => {
+      const mesh = object as THREE.Mesh | THREE.InstancedMesh;
+      if (!("isMesh" in mesh) && !("isInstancedMesh" in mesh)) {
+        return;
+      }
+
+      const geometry = mesh.geometry as THREE.BufferGeometry | undefined;
+      if (!geometry) {
+        return;
+      }
+
+      const primitiveCount = geometry.index
+        ? geometry.index.count / 3
+        : (geometry.getAttribute("position")?.count ?? 0) / 3;
+      const instanceCount = "isInstancedMesh" in mesh && mesh.isInstancedMesh ? mesh.count : 1;
+      triangles += primitiveCount * instanceCount;
+    });
+
+    return Math.round(triangles);
+  }
+
+  private rebuildPlayerAvatar(): void {
+    if (this.playerModel) {
+      this.playerAvatar.remove(this.playerModel);
+    }
+    this.playerModel = createHumanoidModel({
+      classKey: this.character.classKey,
+      primaryColor: this.character.primaryColor,
+      accentColor: this.character.accentColor,
+      outfitVariant: this.character.outfitVariant,
+      scale: 1.25
+    });
+    this.playerAvatar.add(this.playerModel);
+  }
+
   dispose(): void {
     cancelAnimationFrame(this.animationId);
     window.removeEventListener("resize", this.resize);
     this.controls?.dispose();
     this.streamer.dispose();
-    this.enemyGeometry.dispose();
-    this.enemyMaterial.dispose();
-    this.selectedEnemyMaterial.dispose();
-    this.defeatedEnemyMaterial.dispose();
     this.renderer?.dispose();
   }
 }

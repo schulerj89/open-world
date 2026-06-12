@@ -12,12 +12,12 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 ## Active Shader Pipelines
 
-### Starter Town And Enemy Surface Shaders
+### Starter Town, Character, And Enemy Surface Shaders
 
-- Code: `src/world/StarterTown.ts`, `src/core/AeolianWilds.ts`
-- Material: `THREE.MeshLambertMaterial`
-- Inputs: simple town prop geometry, enemy meshes, generated transforms, shared lighting
-- Purpose: renders the offline MMORPG starter loop without adding heavy assets or custom material branches.
+- Code: `src/world/StarterTown.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/core/AeolianWilds.ts`
+- Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
+- Inputs: higher-segment town prop geometry, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting
+- Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
 
 These props intentionally use the same renderer-generated shader path as the rest of the world. The goal for this pass is stable WebGPU/WebGL compatibility and 60 FPS while the gameplay loop takes shape.
 
@@ -52,15 +52,6 @@ The debug HUD reports trunk and crown-part totals. This is intentional: if tree 
 
 Instanced grass and tree meshes now disable frustum culling and recompute bounds after instance matrices are written. This is a conservative rendering choice for debugging partial trees near the camera.
 
-### River Water Shader
-
-- Code: `src/world/TerrainChunk.ts`
-- Material: `THREE.MeshLambertMaterial`
-- Inputs: generated river mesh, transparent blue water material
-- Purpose: renders water strips in chunks intersecting the procedural river corridor.
-
-The river mesh is generated per chunk from the same height sampler that carves the terrain, so the water follows the memory-mapped world model.
-
 ### Sky Shader
 
 - Code: `src/world/Sky.ts`
@@ -70,7 +61,7 @@ The river mesh is generated per chunk from the same height sampler that carves t
 ## Memory And Performance Notes
 
 - World geometry is streamed by chunk rings in `WorldStreamer`.
-- Near chunks carry higher geometry, grass, trees, and river detail.
+- Near chunks carry higher geometry, grass, trees, and town/enemy detail.
 - Far chunks use lower LOD terrain and avoid expensive foliage.
 - The adaptive budget lowers horizon radius, density, and resolution scale when frame time rises.
 - The debug HUD shows live chunks, queued chunks, LOD rings, memory estimate, and current horizon.
@@ -78,6 +69,11 @@ The river mesh is generated per chunk from the same height sampler that carves t
 
 As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect `navigator.gpu`, request an adapter, read features and limits, then show the actual browser path in debug.
 
-## Next Shader Upgrade
+## June 12, 2026 Shader/WebGPU Upgrade
 
-The next major shader step should be a Three TSL/WebGPU node material for grass wind and water shimmer. That would let us animate blade tips and river highlights directly in the vertex/fragment shader while keeping the WebGPU path intact.
+- The world uses renderer-native material shaders instead of hand-written GLSL. Terrain, trees, grass, characters, enemies, and town props use Three material classes that compile through the active WebGPU/WebGL backend.
+- Characters, NPCs, slimes, town stone, and town trim use `MeshLambertMaterial` after visible Chrome testing showed the heavier PBR path was unnecessary for the low-poly style. Lamp bulbs and the targeting ring use `MeshBasicMaterial`; terrain and foliage continue using `MeshLambertMaterial`; textured terrain still uses Lambert lighting plus vertex colors.
+- Rivers were removed from terrain carving and chunk mesh generation. This frees per-chunk geometry and shader work for higher-poly land, town, characters, trees, and enemies.
+- WebGPU MSAA stays disabled. A visible Chrome pass on the higher-poly build showed 4x MSAA pushed the frame well under the 60 FPS target, so resolution scale and adaptive budget remain the active quality controls.
+- The debug HUD estimates draw calls and triangles from visible scene geometry when WebGPU renderer counters are zero or cumulative.
+- The next custom shader should be a Three TSL/node-material wind path for grass and tree crowns. Three's WebGPU renderer can target WebGPU first and fall back to WebGL2, so raw GLSL-only `ShaderMaterial` should remain avoided for this project.

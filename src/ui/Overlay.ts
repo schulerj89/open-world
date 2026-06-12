@@ -37,11 +37,22 @@ export type GameHudState = {
   lastMessage: string;
 };
 
+export type RenderDebugState = {
+  calls: number;
+  triangles: number;
+  estimatedTriangles: boolean;
+  geometries: number;
+  textures: number;
+};
+
 type OverlayEvents = {
   onStart: (draft: CharacterDraft) => void;
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onPerformanceChange: (preset: PerformancePresetKey, memoryBudgetMb: number) => void;
+  onToggleDebug: () => void;
+  onBackToMenu: () => void;
+  onDebugAction: (action: "town" | "slimes" | "equip") => void;
 };
 
 export class Overlay {
@@ -52,6 +63,7 @@ export class Overlay {
   private readonly settings: HTMLElement;
   private readonly debugHud: HTMLElement;
   private readonly gameHud: HTMLElement;
+  private readonly quickTools: HTMLElement;
   private readonly backend: HTMLElement;
   private readonly reticle: HTMLElement;
   private debugVisible = false;
@@ -68,10 +80,11 @@ export class Overlay {
     const panel = this.root.querySelector<HTMLElement>("[data-settings]");
     const debugHud = this.root.querySelector<HTMLElement>("[data-hud]");
     const gameHud = this.root.querySelector<HTMLElement>("[data-game-hud]");
+    const quickTools = this.root.querySelector<HTMLElement>("[data-quick-tools]");
     const backend = this.root.querySelector<HTMLElement>("[data-backend]");
     const reticle = this.root.querySelector<HTMLElement>("[data-reticle]");
 
-    if (!canvas || !title || !panel || !debugHud || !gameHud || !backend || !reticle) {
+    if (!canvas || !title || !panel || !debugHud || !gameHud || !quickTools || !backend || !reticle) {
       throw new Error("Overlay failed to initialize");
     }
 
@@ -80,6 +93,7 @@ export class Overlay {
     this.settings = panel;
     this.debugHud = debugHud;
     this.gameHud = gameHud;
+    this.quickTools = quickTools;
     this.backend = backend;
     this.reticle = reticle;
     this.setPlaying(false);
@@ -91,6 +105,11 @@ export class Overlay {
       button.addEventListener("click", events.onOpenSettings);
     });
     this.root.querySelector<HTMLButtonElement>("[data-close-settings]")?.addEventListener("click", events.onCloseSettings);
+    this.root.querySelector<HTMLButtonElement>("[data-toggle-debug]")?.addEventListener("click", events.onToggleDebug);
+    this.root.querySelector<HTMLButtonElement>("[data-back-menu]")?.addEventListener("click", events.onBackToMenu);
+    this.root.querySelector<HTMLButtonElement>("[data-warp-town]")?.addEventListener("click", () => events.onDebugAction("town"));
+    this.root.querySelector<HTMLButtonElement>("[data-warp-slimes]")?.addEventListener("click", () => events.onDebugAction("slimes"));
+    this.root.querySelector<HTMLButtonElement>("[data-equip-debug]")?.addEventListener("click", () => events.onDebugAction("equip"));
     this.root.querySelectorAll<HTMLSelectElement>("[data-performance-control]").forEach((select) => {
       select.addEventListener("change", () => {
         const preset = this.readPresetKey();
@@ -108,6 +127,7 @@ export class Overlay {
     this.title.hidden = isPlaying;
     this.reticle.hidden = !isPlaying;
     this.gameHud.hidden = !isPlaying;
+    this.quickTools.hidden = !isPlaying;
     this.debugHud.hidden = !isPlaying || !this.debugVisible;
   }
 
@@ -164,7 +184,8 @@ export class Overlay {
     stats: StreamStats,
     wind: number,
     player: PlayerDebugState,
-    gpu: WebGpuDebugInfo
+    gpu: WebGpuDebugInfo,
+    render: RenderDebugState
   ): void {
     const memoryPercent = stats.memoryBudgetMb > 0 ? Math.min(100, (stats.estimatedMb / stats.memoryBudgetMb) * 100) : 0;
     const gpuMode = gpu.supported ? (gpu.adapterAvailable ? "adapter ready" : "no adapter") : "unsupported";
@@ -193,6 +214,8 @@ export class Overlay {
       <div class="metric-row"><span>Pointer</span><span>${player.pointerLocked ? "locked" : player.dragLook ? "drag" : "free"}</span></div>
       <div class="metric-row" data-debug-trees><span>Trees</span><span>${stats.trunks} trunks / ${stats.coniferCrowns * 3 + stats.broadleafCrowns} crown parts</span></div>
       <div class="metric-row"><span>Grass cards</span><span>${stats.grassInstances}</span></div>
+      <div class="metric-row" data-debug-render><span>Render</span><span>${render.calls} calls / ${render.triangles.toLocaleString()}${render.estimatedTriangles ? " est." : ""} tris</span></div>
+      <div class="metric-row"><span>GPU memory</span><span>${render.geometries} geos / ${render.textures} tex</span></div>
       <div class="metric-row" data-debug-gpu><span>GPU</span><span>${gpuLabel}</span></div>
       <div class="metric-row"><span>Adapter</span><span>${gpuAdapter}</span></div>
       <div class="metric-row"><span>WebGPU limits</span><span>${gpu.limits?.maxBindGroups ?? 0} bind groups / ${gpu.limits?.maxSampledTexturesPerShaderStage ?? 0} sampled tex</span></div>
@@ -211,8 +234,16 @@ export class Overlay {
 
     return {
       name: sanitizeName(nameInput?.value),
-      classKey
+      classKey,
+      primaryColor: this.root.querySelector<HTMLInputElement>("[data-primary-color]")?.value ?? "#b44f42",
+      accentColor: this.root.querySelector<HTMLInputElement>("[data-accent-color]")?.value ?? "#c8d2df",
+      outfitVariant: this.readOutfitVariant()
     };
+  }
+
+  private readOutfitVariant(): CharacterDraft["outfitVariant"] {
+    const value = this.root.querySelector<HTMLSelectElement>("[data-outfit-variant]")?.value;
+    return value === "traveler" || value === "guard" || value === "mage" ? value : "traveler";
   }
 
   private readPresetKey(): PerformancePresetKey {
@@ -270,6 +301,22 @@ export class Overlay {
               <span>Class</span>
               <select data-character-class>${classOptions}</select>
             </label>
+            <label>
+              <span>Outfit</span>
+              <select data-outfit-variant>
+                <option value="traveler">Traveler</option>
+                <option value="guard">Guard</option>
+                <option value="mage">Mage</option>
+              </select>
+            </label>
+            <label>
+              <span>Main color</span>
+              <input data-primary-color type="color" value="#b44f42" />
+            </label>
+            <label>
+              <span>Accent</span>
+              <input data-accent-color type="color" value="#c8d2df" />
+            </label>
           </div>
           <div class="title-actions">
             <button class="primary-button" type="button" data-start>Enter Town</button>
@@ -294,6 +341,13 @@ export class Overlay {
       </aside>
       <div class="reticle" data-reticle></div>
       <div class="game-hud" data-game-hud></div>
+      <div class="quick-tools" data-quick-tools hidden>
+        <button type="button" data-toggle-debug>Debug</button>
+        <button type="button" data-warp-town>7 Town</button>
+        <button type="button" data-warp-slimes>8 Slimes</button>
+        <button type="button" data-equip-debug>9 Equip</button>
+        <button type="button" data-back-menu>Menu</button>
+      </div>
       <div class="hud" data-hud></div>
     `;
   }

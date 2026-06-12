@@ -5,20 +5,11 @@ export class TerrainHeight implements HeightSampler {
   private readonly noise = new Noise(8421);
 
   getHeight(x: number, z: number): number {
-    const base = this.getBaseHeight(x, z);
-    const river = this.getRiverInfo(x, z);
-
-    if (river.influence <= 0) {
-      return base;
-    }
-
-    const bed = river.surfaceY - 2.2 - river.influence * 1.4;
-    return base + (Math.min(base, bed) - base) * river.influence;
+    return this.getBaseHeight(x, z);
   }
 
   getMoisture(x: number, z: number): number {
-    const river = this.getRiverInfo(x, z);
-    return Math.min(1, this.noise.fbm(x * 0.02 + 500, z * 0.02 - 300, 4) + river.influence * 0.45);
+    return Math.min(1, this.noise.fbm(x * 0.02 + 500, z * 0.02 - 300, 4));
   }
 
   getRiverInfo(x: number, z: number): {
@@ -27,14 +18,7 @@ export class TerrainHeight implements HeightSampler {
     surfaceY: number;
     width: number;
   } {
-    const centerZ = this.getRiverCenterZ(x);
-    const distance = Math.abs(z - centerZ);
-    const width = 15 + this.noise.fbm(x * 0.012 + 30, centerZ * 0.014 - 20, 3) * 8;
-    const bank = width + 10;
-    const influence = smoothstep(bank, width * 0.28, distance);
-    const surfaceY = this.getBaseHeight(x, centerZ) - 5.8;
-
-    return { distance, influence, surfaceY, width };
+    return { distance: Number.POSITIVE_INFINITY, influence: 0, surfaceY: this.getBaseHeight(x, z), width: 0 };
   }
 
   private getBaseHeight(x: number, z: number): number {
@@ -47,13 +31,4 @@ export class TerrainHeight implements HeightSampler {
 
     return rolling + detail + ridges + farRange + valley - 44;
   }
-
-  private getRiverCenterZ(x: number): number {
-    return Math.sin(x * 0.006) * 86 + Math.sin(x * 0.019 + 1.8) * 28;
-  }
-}
-
-function smoothstep(edge0: number, edge1: number, value: number): number {
-  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
 }

@@ -20,6 +20,11 @@ export type InputActions = {
   slot1: boolean;
   slot2: boolean;
   toggleDebug: boolean;
+  warpTown: boolean;
+  warpSlimes: boolean;
+  equipDebug: boolean;
+  backToMenu: boolean;
+  jump: boolean;
 };
 
 export class InputController {
@@ -76,7 +81,12 @@ export class InputController {
       targetNext: this.actions.has("targetNext"),
       slot1: this.actions.has("slot1"),
       slot2: this.actions.has("slot2"),
-      toggleDebug: this.actions.has("toggleDebug")
+      toggleDebug: this.actions.has("toggleDebug"),
+      warpTown: this.actions.has("warpTown"),
+      warpSlimes: this.actions.has("warpSlimes"),
+      equipDebug: this.actions.has("equipDebug"),
+      backToMenu: this.actions.has("backToMenu"),
+      jump: this.actions.has("jump")
     };
     this.actions.clear();
     return actions;
@@ -183,6 +193,7 @@ export class InputController {
         this.state.sprint = active;
         break;
       case "Space":
+      case "KeyJ":
         this.state.jump = active;
         break;
       case "KeyQ":
@@ -213,6 +224,22 @@ export class InputController {
         break;
       case "KeyT":
         this.actions.add("toggleDebug");
+        break;
+      case "Digit7":
+        this.actions.add("warpTown");
+        break;
+      case "Digit8":
+        this.actions.add("warpSlimes");
+        break;
+      case "Digit9":
+        this.actions.add("equipDebug");
+        break;
+      case "KeyM":
+        this.actions.add("backToMenu");
+        break;
+      case "Space":
+      case "KeyJ":
+        this.actions.add("jump");
         break;
     }
   }
@@ -250,10 +277,22 @@ export class InputController {
       case "t":
       case "T":
         return "KeyT";
+      case "j":
+      case "J":
+        return "KeyJ";
       case "1":
         return "Digit1";
       case "2":
         return "Digit2";
+      case "7":
+        return "Digit7";
+      case "8":
+        return "Digit8";
+      case "9":
+        return "Digit9";
+      case "m":
+      case "M":
+        return "KeyM";
       case " ":
       case "Space":
       case "Spacebar":
@@ -280,10 +319,15 @@ export class InputController {
       "ShiftLeft",
       "ShiftRight",
       "Space",
+      "KeyJ",
       "Tab",
       "Digit1",
       "Digit2",
-      "KeyT"
+      "KeyT",
+      "Digit7",
+      "Digit8",
+      "Digit9",
+      "KeyM"
     ].includes(code);
   }
 }

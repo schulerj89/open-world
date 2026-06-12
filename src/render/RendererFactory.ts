@@ -37,8 +37,9 @@ export async function createRenderer(
 ): Promise<RendererInfo> {
   const pixelRatio = Math.min(window.devicePixelRatio, 2) * settings.resolutionScale;
   const gpuDebug = await collectWebGpuDebugInfo();
+  const rendererOverride = new URLSearchParams(window.location.search).get("renderer");
 
-  if ("gpu" in navigator) {
+  if (rendererOverride !== "webgl" && "gpu" in navigator) {
     try {
       const module = await import("three/webgpu");
       const WebGPURenderer = module.WebGPURenderer as unknown as typeof THREE.WebGLRenderer;
@@ -46,7 +47,7 @@ export async function createRenderer(
         canvas,
         antialias: false,
         alpha: false
-      });
+      } as THREE.WebGLRendererParameters);
       const maybeInit = (renderer as unknown as { init?: () => Promise<void> }).init;
       if (maybeInit) {
         await maybeInit.call(renderer);

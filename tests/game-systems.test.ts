@@ -6,12 +6,35 @@ import { performancePresets, resolvePerformanceSettings } from "../src/game/Perf
 import { createTutorialQuest, getTutorialInstruction, recordTutorialKill } from "../src/game/QuestSystem.js";
 
 test("character creation sanitizes names and applies class stats", () => {
-  const character = createCharacter({ name: "  Nyx!!   Star  ", classKey: "arcanist" });
+  const character = createCharacter({
+    name: "  Nyx!!   Star  ",
+    classKey: "arcanist",
+    primaryColor: "#123abc",
+    accentColor: "#fedcba",
+    outfitVariant: "mage"
+  });
 
   assert.equal(character.name, "Nyx Star");
   assert.equal(character.classLabel, "Arcanist");
   assert.equal(character.hp, character.maxHp);
   assert.equal(character.attackPower, 38);
+  assert.equal(character.primaryColor, "#123abc");
+  assert.equal(character.accentColor, "#fedcba");
+  assert.equal(character.outfitVariant, "mage");
+});
+
+test("character customization falls back to safe class defaults", () => {
+  const character = createCharacter({
+    name: "Iris",
+    classKey: "wayfarer",
+    primaryColor: "green",
+    accentColor: "#12",
+    outfitVariant: "spacesuit" as never
+  });
+
+  assert.equal(character.primaryColor, "#4c9f63");
+  assert.equal(character.accentColor, "#d7b15f");
+  assert.equal(character.outfitVariant, "traveler");
 });
 
 test("combat defeats beginner enemies and awards gold once", () => {

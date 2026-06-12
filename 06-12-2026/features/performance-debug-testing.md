@@ -24,6 +24,8 @@ It reports:
 - Tree trunk and crown-part counts.
 - Grass card count.
 - WebGPU support, adapter availability, core/compat signal, preferred canvas format, feature count, and adapter limits.
+- Render calls, rendered triangles, geometry count, and texture count.
+- The WebGPU path can expose cumulative or zeroed renderer counters depending on backend behavior, so the HUD falls back to visible-scene estimates for draw calls and triangles when native counters are misleading.
 
 ## Tree Rendering Debug
 
@@ -60,3 +62,18 @@ After the first automation pass, the same gameplay path was also verified in the
 - Debug HUD reported 60 FPS and 16.7 ms frame time.
 - Chrome WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
 - The Chrome tab was left open for user inspection.
+
+## Third-Person Visible Audit
+
+The third-person/higher-detail pass was tested only through visible Chrome, with the final production preview on `127.0.0.1:4198`.
+
+- WebGPU renderer initialized and debug reported adapter ready, core mode, `bgra8unorm`, `16384px texture`, Nvidia/Ampere adapter metadata, 19 features, bind-group and buffer limits.
+- Render debug used estimated scene values where WebGPU counters were cumulative or zero. Final town view showed about `48-62 calls` and `31k estimated tris`.
+- WASD movement changed X/Z coordinates in the debug HUD.
+- Keyboard look changed yaw and pitch in the debug HUD.
+- Jump is now edge-triggered on `Space` and `J`; final visible screenshot showed Y at `9.1`, speed `5.8`, and grounded `no`.
+- `8 Slimes`, `Tab`, and repeated `1` strikes defeated a slime and awarded `6g`.
+- `9 Equip` swapped outfit colors/gear.
+- `M`/Menu returned to the title screen.
+
+The visible Chrome session still reported about `21-24 FPS` even after the adaptive budget collapsed to a small horizon and render calls dropped near `50`. A WebGL override (`?renderer=webgl`) showed the same range, so this was documented as an environment/browser-session observation rather than a WebGPU-only renderer issue.

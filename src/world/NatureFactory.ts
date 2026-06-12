@@ -46,9 +46,9 @@ const trunkMaterial = new THREE.MeshLambertMaterial({ color: "#5a3b24" });
 const leafMaterial = new THREE.MeshLambertMaterial({ color: "#5e9656" });
 const darkLeafMaterial = new THREE.MeshLambertMaterial({ color: "#3f7548" });
 const grassCardGeometry = markSharedGeometry(createGrassCardGeometry());
-const trunkGeometry = markSharedGeometry(new THREE.CylinderGeometry(0.2, 0.38, 1, 6));
-const coneGeometry = markSharedGeometry(new THREE.ConeGeometry(1, 1, 8));
-const roundGeometry = markSharedGeometry(new THREE.IcosahedronGeometry(1, 1));
+const trunkGeometry = markSharedGeometry(new THREE.CylinderGeometry(0.2, 0.38, 1, 10));
+const coneGeometry = markSharedGeometry(new THREE.ConeGeometry(1, 1, 16));
+const roundGeometry = markSharedGeometry(new THREE.IcosahedronGeometry(1, 2));
 
 export function updateGrassWindMaterials(time: number, strength: number): void {
   grassMaterials.forEach((material, index) => {
@@ -131,13 +131,6 @@ export class NatureFactory {
         const r2 = this.noise.value(chunkX * 31 + i * 9.1, chunkZ * 47 - band * 13);
         const worldX = chunkX * chunkSize + (r1 - 0.5) * chunkSize;
         const worldZ = chunkZ * chunkSize + (r2 - 0.5) * chunkSize;
-        const river = terrain.getRiverInfo(worldX, worldZ);
-        if (river.influence > 0.7) {
-          position.set(worldX, terrain.getHeight(worldX, worldZ) - 100, worldZ);
-          matrix.compose(position, new THREE.Quaternion(), new THREE.Vector3(0.001, 0.001, 0.001));
-          mesh.setMatrixAt(i, matrix);
-          continue;
-        }
         const height = terrain.getHeight(worldX, worldZ);
         const slopeCull = Math.abs(terrain.getHeight(worldX + 1, worldZ) - height);
 
@@ -226,9 +219,8 @@ export class NatureFactory {
       const worldZ = chunkZ * chunkSize + (r2 - 0.5) * chunkSize * 0.92;
       const height = terrain.getHeight(worldX, worldZ);
       const moisture = terrain.getMoisture(worldX, worldZ);
-      const river = terrain.getRiverInfo(worldX, worldZ);
 
-      if (height > 74 || moisture < 0.26 || river.influence > 0.58) {
+      if (height > 74 || moisture < 0.26) {
         continue;
       }
 

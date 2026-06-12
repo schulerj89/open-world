@@ -10,12 +10,20 @@ export type CharacterClass = {
 export type CharacterDraft = {
   name: string;
   classKey: CharacterClassKey;
+  primaryColor: string;
+  accentColor: string;
+  outfitVariant: OutfitVariant;
 };
+
+export type OutfitVariant = "traveler" | "guard" | "mage";
 
 export type PlayerCharacter = {
   name: string;
   classKey: CharacterClassKey;
   classLabel: string;
+  primaryColor: string;
+  accentColor: string;
+  outfitVariant: OutfitVariant;
   level: number;
   maxHp: number;
   hp: number;
@@ -48,11 +56,17 @@ export function createCharacter(draft: Partial<CharacterDraft>): PlayerCharacter
   const classKey = isCharacterClassKey(draft.classKey) ? draft.classKey : "sentinel";
   const characterClass = characterClasses[classKey];
   const name = sanitizeName(draft.name);
+  const primaryColor = sanitizeColor(draft.primaryColor, defaultPrimaryColor(classKey));
+  const accentColor = sanitizeColor(draft.accentColor, defaultAccentColor(classKey));
+  const outfitVariant = isOutfitVariant(draft.outfitVariant) ? draft.outfitVariant : defaultOutfitVariant(classKey);
 
   return {
     name,
     classKey,
     classLabel: characterClass.label,
+    primaryColor,
+    accentColor,
+    outfitVariant,
     level: 1,
     maxHp: characterClass.maxHp,
     hp: characterClass.maxHp,
@@ -89,6 +103,45 @@ export function sanitizeName(value: unknown): string {
   return name.length > 0 ? name : "Rowan";
 }
 
+export function sanitizeColor(value: unknown, fallback: string): string {
+  const color = String(value ?? "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function defaultPrimaryColor(classKey: CharacterClassKey): string {
+  if (classKey === "arcanist") {
+    return "#5d6edb";
+  }
+  if (classKey === "wayfarer") {
+    return "#4c9f63";
+  }
+  return "#b44f42";
+}
+
+function defaultAccentColor(classKey: CharacterClassKey): string {
+  if (classKey === "arcanist") {
+    return "#e0c36c";
+  }
+  if (classKey === "wayfarer") {
+    return "#d7b15f";
+  }
+  return "#c8d2df";
+}
+
+function defaultOutfitVariant(classKey: CharacterClassKey): OutfitVariant {
+  if (classKey === "arcanist") {
+    return "mage";
+  }
+  if (classKey === "wayfarer") {
+    return "traveler";
+  }
+  return "guard";
+}
+
 function isCharacterClassKey(value: unknown): value is CharacterClassKey {
   return typeof value === "string" && value in characterClasses;
+}
+
+function isOutfitVariant(value: unknown): value is OutfitVariant {
+  return value === "traveler" || value === "guard" || value === "mage";
 }

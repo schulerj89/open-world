@@ -12,11 +12,6 @@ const rockTerrainMaterial = new THREE.MeshLambertMaterial({
   map: assets.rockColor,
   vertexColors: true
 });
-const waterMaterial = new THREE.MeshLambertMaterial({
-  color: "#4a8fa7",
-  transparent: true,
-  opacity: 0.72
-});
 
 export type TerrainChunkParams = {
   chunkX: number;
@@ -41,17 +36,10 @@ export class TerrainChunk {
     this.lod = params.lod;
     this.natureStats = params.nature.stats;
     const terrainMesh = this.buildTerrain(params);
-    const riverMesh = this.buildRiver(params);
     this.group.add(terrainMesh);
-    if (riverMesh) {
-      this.group.add(riverMesh);
-    }
     this.group.add(params.nature.group);
     this.windTargets = params.nature.windTargets;
-    this.estimatedMb =
-      this.estimateTerrainMb(terrainMesh.geometry) +
-      (riverMesh ? this.estimateTerrainMb(riverMesh.geometry) : 0) +
-      params.nature.estimatedMb;
+    this.estimatedMb = this.estimateTerrainMb(terrainMesh.geometry) + params.nature.estimatedMb;
   }
 
   static key(chunkX: number, chunkZ: number): string {
@@ -69,13 +57,12 @@ export class TerrainChunk {
   }
 
   private buildTerrain(params: TerrainChunkParams): THREE.Mesh {
-    const segments = params.lod === 0 ? 22 : params.lod === 1 ? 10 : 5;
+    const segments = params.lod === 0 ? 34 : params.lod === 1 ? 16 : 8;
     const vertexCount = (segments + 1) * (segments + 1);
     const positions = new Float32Array(vertexCount * 3);
     const colors = new Float32Array(vertexCount * 3);
     const uvs = new Float32Array(vertexCount * 2);
     const heights = new Float32Array(vertexCount);
-    const riverInfluences = new Float32Array(vertexCount);
     const indices: number[] = [];
     const color = new THREE.Color();
     const snowColor = new THREE.Color("#f2f0e8");
@@ -87,10 +74,8 @@ export class TerrainChunk {
         const px = (x / segments - 0.5) * params.chunkSize + params.chunkX * params.chunkSize;
         const pz = (z / segments - 0.5) * params.chunkSize + params.chunkZ * params.chunkSize;
         const py = params.terrain.getHeight(px, pz);
-        const river = params.terrain.getRiverInfo(px, pz);
 
         heights[cursor] = py;
-        riverInfluences[cursor] = river.influence;
         positions[cursor * 3] = px;
         positions[cursor * 3 + 1] = py;
         positions[cursor * 3 + 2] = pz;
@@ -107,9 +92,7 @@ export class TerrainChunk {
         const south = heights[Math.min(segments, z + 1) * (segments + 1) + x];
         const slope = Math.abs(east - py) + Math.abs(south - py);
 
-        if (riverInfluences[cursor] > 0.35) {
-          color.set("#6b8e5a");
-        } else if (py > 88) {
+        if (py > 88) {
           color.set("#b9b7ad").lerp(snowColor, Math.min(1, (py - 58) / 90));
           rocky += 1;
         } else if (slope > 4.7) {
@@ -147,78 +130,6 @@ export class TerrainChunk {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.receiveShadow = true;
     return mesh;
-  }
-
-  private buildRiver(params: TerrainChunkParams): THREE.Mesh | undefined {
-    if (params.lod > 1) {
-      return undefined;
-    }
-
-    const samples = 12;
-    const positions: number[] = [];
-    const colors: number[] = [];
-    const indices: number[] = [];
-    const color = new THREE.Color("#5aa7bd");
-    let hasWater = false;
-
-    for (let x = 0; x <= samples; x += 1) {
-      const px = (x / samples - 0.5) * params.chunkSize + params.chunkX * params.chunkSize;
-      const centerProbe = params.terrain.getRiverInfo(px, params.chunkZ * params.chunkSize);
-
-      for (let side = -1; side <= 1; side += 2) {
-        const centerZ = this.findRiverCenter(px, params);
-        const pz = centerZ + side * centerProbe.width * 0.48;
-        const insideChunk =
-          pz >= params.chunkZ * params.chunkSize - params.chunkSize * 0.55 &&
-          pz <= params.chunkZ * params.chunkSize + params.chunkSize * 0.55;
-
-        if (insideChunk) {
-          hasWater = true;
-        }
-
-        const river = params.terrain.getRiverInfo(px, pz);
-        positions.push(px, river.surfaceY + 0.12, pz);
-        color.offsetHSL(0, 0, side < 0 ? -0.02 : 0.02);
-        colors.push(color.r, color.g, color.b);
-      }
-    }
-
-    if (!hasWater) {
-      return undefined;
-    }
-
-    for (let x = 0; x < samples; x += 1) {
-      const a = x * 2;
-      const b = a + 1;
-      const c = a + 2;
-      const d = a + 3;
-      indices.push(a, c, b, b, c, d);
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(positions), 3));
-    geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(colors), 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-
-    return new THREE.Mesh(geometry, waterMaterial);
-  }
-
-  private findRiverCenter(x: number, params: TerrainChunkParams): number {
-    const chunkCenterZ = params.chunkZ * params.chunkSize;
-    let bestZ = chunkCenterZ;
-    let bestDistance = Number.POSITIVE_INFINITY;
-
-    for (let i = -3; i <= 3; i += 1) {
-      const z = chunkCenterZ + (i / 3) * params.chunkSize;
-      const river = params.terrain.getRiverInfo(x, z);
-      if (river.distance < bestDistance) {
-        bestDistance = river.distance;
-        bestZ = z + (z < chunkCenterZ ? river.distance : -river.distance);
-      }
-    }
-
-    return bestZ;
   }
 
   private estimateTerrainMb(geometry: THREE.BufferGeometry): number {

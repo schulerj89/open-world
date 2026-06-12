@@ -31,7 +31,7 @@ Generated concept map:
 
 `public/assets/concepts/starter-town-terrain-06-12-2026.png`
 
-The concept shows the target starter-zone direction: small town, road to meadow enemies, dense grass, tree clusters, river bends, and hills.
+The concept shows the target starter-zone direction: small town, road to meadow enemies, dense grass, tree clusters, and hills. Rivers were later removed from the active terrain pass so the geometry budget can go toward town, trees, characters, and enemies.
 
 ## Web Assets
 
