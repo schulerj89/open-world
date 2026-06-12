@@ -20,6 +20,8 @@ export type PlayerDebugState = {
   pointerLocked: boolean;
   dragLook: boolean;
   collisionHits: number;
+  townColliders: number;
+  enemyColliders: number;
 };
 
 export type GameHudState = {
@@ -57,12 +59,13 @@ export type FrameTimingState = {
 
 type OverlayEvents = {
   onStart: (draft: CharacterDraft) => void;
+  onPreviewChange: (draft: CharacterDraft) => void;
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onPerformanceChange: (preset: PerformancePresetKey, memoryBudgetMb: number) => void;
   onToggleDebug: () => void;
   onBackToMenu: () => void;
-  onDebugAction: (action: "town" | "slimes" | "equip" | "collide") => void;
+  onDebugAction: (action: "reset" | "town" | "slimes" | "equip" | "collide") => void;
 };
 
 export class Overlay {
@@ -117,6 +120,7 @@ export class Overlay {
     this.root.querySelector<HTMLButtonElement>("[data-close-settings]")?.addEventListener("click", events.onCloseSettings);
     this.root.querySelector<HTMLButtonElement>("[data-toggle-debug]")?.addEventListener("click", events.onToggleDebug);
     this.root.querySelector<HTMLButtonElement>("[data-back-menu]")?.addEventListener("click", events.onBackToMenu);
+    this.root.querySelector<HTMLButtonElement>("[data-reset-debug]")?.addEventListener("click", () => events.onDebugAction("reset"));
     this.root.querySelector<HTMLButtonElement>("[data-warp-town]")?.addEventListener("click", () => events.onDebugAction("town"));
     this.root.querySelector<HTMLButtonElement>("[data-warp-slimes]")?.addEventListener("click", () => events.onDebugAction("slimes"));
     this.root.querySelector<HTMLButtonElement>("[data-equip-debug]")?.addEventListener("click", () => events.onDebugAction("equip"));
@@ -129,8 +133,15 @@ export class Overlay {
         this.updatePresetDescription(preset, cap);
       });
     });
+    this.root
+      .querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-character-control]")
+      .forEach((control) => {
+        control.addEventListener("input", () => events.onPreviewChange(this.readCharacterDraft()));
+        control.addEventListener("change", () => events.onPreviewChange(this.readCharacterDraft()));
+      });
 
     this.updatePresetDescription("balanced", settings.memoryBudgetMb);
+    events.onPreviewChange(this.readCharacterDraft());
   }
 
   setPlaying(isPlaying: boolean): void {
@@ -224,7 +235,7 @@ export class Overlay {
       <div class="metric-row"><span>Speed</span><span>${player.speed.toFixed(1)} u/s</span></div>
       <div class="metric-row"><span>Grounded</span><span>${player.grounded ? "yes" : "no"}</span></div>
       <div class="metric-row"><span>Pointer</span><span>${player.pointerLocked ? "locked" : player.dragLook ? "drag" : "free"}</span></div>
-      <div class="metric-row" data-debug-collision><span>Collision</span><span>${player.collisionHits} hits / ${stats.colliders} tree blockers</span></div>
+      <div class="metric-row" data-debug-collision><span>Collision</span><span>${player.collisionHits} hits / ${stats.colliders} tree / ${player.townColliders} town / ${player.enemyColliders} enemy blockers</span></div>
       <div class="metric-row" data-debug-trees><span>Trees</span><span>${stats.trunks} trunks / ${stats.coniferCrowns * 3 + stats.broadleafCrowns} crown parts</span></div>
       <div class="metric-row"><span>Grass cards</span><span>${stats.grassInstances}</span></div>
       <div class="metric-row" data-debug-render><span>Render</span><span>${render.calls} calls / ${render.triangles.toLocaleString()}${render.estimatedTriangles ? " est." : ""} tris</span></div>
@@ -308,18 +319,19 @@ export class Overlay {
           <p class="eyebrow">Offline starter MMORPG prototype</p>
           <h1>Aeolian Wilds</h1>
           <p class="subtitle">Create a hero, start in Briar Glen, complete the first hunt, and test movement, looking, jumping, targeting, slots, grass, trees, and debug data.</p>
+          <div class="preview-chip">Live Character Preview</div>
           <div class="character-builder" aria-label="Character builder">
             <label>
               <span>Name</span>
-              <input data-character-name maxlength="18" value="Rowan" />
+              <input data-character-name data-character-control maxlength="18" value="Rowan" />
             </label>
             <label>
               <span>Class</span>
-              <select data-character-class>${classOptions}</select>
+              <select data-character-class data-character-control>${classOptions}</select>
             </label>
             <label>
               <span>Outfit</span>
-              <select data-outfit-variant>
+              <select data-outfit-variant data-character-control>
                 <option value="traveler">Traveler</option>
                 <option value="guard">Guard</option>
                 <option value="mage">Mage</option>
@@ -327,11 +339,11 @@ export class Overlay {
             </label>
             <label>
               <span>Main color</span>
-              <input data-primary-color type="color" value="#b44f42" />
+              <input data-primary-color data-character-control type="color" value="#b44f42" />
             </label>
             <label>
               <span>Accent</span>
-              <input data-accent-color type="color" value="#c8d2df" />
+              <input data-accent-color data-character-control type="color" value="#c8d2df" />
             </label>
           </div>
           <div class="title-actions">
@@ -359,6 +371,7 @@ export class Overlay {
       <div class="game-hud" data-game-hud></div>
       <div class="quick-tools" data-quick-tools hidden>
         <button type="button" data-toggle-debug>Debug</button>
+        <button type="button" data-reset-debug>6 Reset</button>
         <button type="button" data-warp-town>7 Town</button>
         <button type="button" data-warp-slimes>8 Slimes</button>
         <button type="button" data-equip-debug>9 Equip</button>

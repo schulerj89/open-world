@@ -16,10 +16,12 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 - Code: `src/world/StarterTown.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/core/AeolianWilds.ts`
 - Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
-- Inputs: higher-segment town prop geometry, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting
+- Inputs: higher-segment town prop geometry, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
 - Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
 
 These props intentionally use the same renderer-generated shader path as the rest of the world. The goal for this pass is stable WebGPU/WebGL compatibility and 60 FPS while the gameplay loop takes shape.
+
+The June 12 town polish pass keeps custom visual motion in object transforms instead of raw shader code: tutorial markers bob and rotate, window glows pulse through scale, NPCs idle through yaw/height offsets, and attack/hit feedback uses player/enemy transform pulses. This keeps the WebGPU path on Three's renderer-native material shaders while still giving visible motion.
 
 ### Terrain Surface Shader
 
@@ -77,4 +79,5 @@ As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect
 - WebGPU MSAA stays disabled. A visible Chrome pass on the higher-poly build showed 4x MSAA pushed the frame well under the 60 FPS target, so resolution scale and adaptive budget remain the active quality controls.
 - The debug HUD estimates draw calls and triangles from visible scene geometry when WebGPU renderer counters are zero or cumulative.
 - Tree crowns now sway through CPU-updated instanced matrices while trunks remain fixed to the terrain. This was chosen for immediate visual verification and browser compatibility.
+- Attack, hit, quest-marker, NPC idle, and window-glow animation currently run as CPU-updated object transforms. They intentionally do not use raw GLSL so the project stays on the same WebGPU-compatible material path.
 - The next custom shader should be a Three TSL/node-material wind path for grass and tree crowns so the CPU-side matrix update can be replaced with GPU vertex displacement. Three's WebGPU renderer can target WebGPU first and fall back to WebGL2, so raw GLSL-only `ShaderMaterial` should remain avoided for this project.

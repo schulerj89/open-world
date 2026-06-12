@@ -40,6 +40,9 @@ export class AeolianWilds {
   private readonly adaptiveBudget = new AdaptiveBudget();
   private readonly sound = new AmbientSound();
   private readonly playerAvatar = new THREE.Group();
+  private readonly previewAvatar = new THREE.Group();
+  private readonly previewOffset = new THREE.Vector3(6.5, -2.7, -10);
+  private readonly previewWorld = new THREE.Vector3();
   private readonly selectionRing = new THREE.Mesh(
     new THREE.TorusGeometry(2.2, 0.08, 8, 32),
     new THREE.MeshBasicMaterial({ color: "#f0c45b" })
@@ -54,10 +57,21 @@ export class AeolianWilds {
   private controls?: InputController;
   private player: ThirdPersonController;
   private town?: StarterTown;
+  private previewModel?: THREE.Group;
+  private previewDraft: CharacterDraft = {
+    name: "Rowan",
+    classKey: "sentinel",
+    primaryColor: "#b44f42",
+    accentColor: "#c8d2df",
+    outfitVariant: "traveler"
+  };
   private character: PlayerCharacter = createCharacter({ name: "Rowan", classKey: "sentinel" });
   private quest: TutorialQuestState = createTutorialQuest();
   private readonly enemies: EnemyActor[] = [];
+  private readonly enemyHitUntil = new Map<string, number>();
   private selectedEnemyId = "";
+  private playerAttackStarted = 0;
+  private playerAttackUntil = 0;
   private lastCollisionHits = 0;
   private collisionDisplayFrames = 0;
   private lastMessage = "Create a character and enter Briar Glen.";
@@ -78,6 +92,7 @@ export class AeolianWilds {
   constructor(host: HTMLElement) {
     this.overlay = new Overlay(host, this.settings, {
       onStart: (draft) => void this.enterWorld(draft),
+      onPreviewChange: (draft) => this.updatePreviewAvatar(draft),
       onOpenSettings: () => this.openSettings(),
       onCloseSettings: () => this.closeSettings(),
       onPerformanceChange: (preset, memoryBudgetMb) => this.updatePerformancePreset(preset, memoryBudgetMb),
@@ -97,6 +112,10 @@ export class AeolianWilds {
     this.playerAvatar.name = "player-avatar";
     this.playerAvatar.visible = false;
     this.scene.add(this.playerAvatar);
+    this.previewAvatar.name = "title-character-preview";
+    this.previewAvatar.visible = true;
+    this.scene.add(this.previewAvatar);
+    this.updatePreviewAvatar(this.previewDraft);
     this.selectionRing.rotation.x = Math.PI / 2;
     this.selectionRing.visible = false;
     this.scene.add(this.selectionRing);
@@ -125,6 +144,7 @@ export class AeolianWilds {
     this.lastMessage = "Welcome to Briar Glen. Follow the road east to find meadow slimes.";
     this.resetEnemies();
     this.rebuildPlayerAvatar();
+    this.previewAvatar.visible = false;
     if (this.town) {
       this.player.teleportTo(
         this.town.playerSpawn.x,
@@ -149,6 +169,7 @@ export class AeolianWilds {
     this.mode = "title";
     this.modeBeforeSettings = "title";
     this.playerAvatar.visible = false;
+    this.previewAvatar.visible = true;
     this.selectionRing.visible = false;
     this.overlay.showSettings(false);
     this.overlay.setPlaying(false);
@@ -199,14 +220,17 @@ export class AeolianWilds {
 
     const updateStart = performance.now();
     if (this.mode === "playing" && this.controls) {
+      this.previewAvatar.visible = false;
       this.handleGameplayActions(this.controls.consumeActions());
       this.player.update(delta, this.controls, this.streamer.terrain, this.playerAvatar, (position, radius) =>
         this.resolvePlayerCollisions(position, radius)
       );
+      this.animatePlayerAttack(elapsed);
       this.animateTown(elapsed);
       this.updateEnemies(elapsed);
     } else {
       this.player.setTitleOrbit(elapsed, 138, this.streamer.terrain);
+      this.positionPreviewAvatar(elapsed);
       this.animateTown(elapsed);
     }
     const updateMs = performance.now() - updateStart;
@@ -231,7 +255,9 @@ export class AeolianWilds {
           ...this.player.getDebugState(),
           pointerLocked: this.controls?.state.pointerLocked ?? false,
           dragLook: this.controls?.state.dragLook ?? false,
-          collisionHits: this.lastCollisionHits
+          collisionHits: this.lastCollisionHits,
+          townColliders: this.town?.colliders.length ?? 0,
+          enemyColliders: this.enemies.filter((actor) => actor.enemy.alive).length
         },
         this.gpuDebug,
         this.getRenderDebugState(),
@@ -313,6 +339,7 @@ export class AeolianWilds {
   }
 
   private resetEnemies(): void {
+    this.enemyHitUntil.clear();
     this.enemies.forEach((actor, index) => {
       actor.enemy = createBeginnerEnemy(index);
       actor.mesh.visible = true;
@@ -332,6 +359,10 @@ export class AeolianWilds {
 
     if (actions.warpTown) {
       this.runDebugAction("town");
+    }
+
+    if (actions.resetEncounter) {
+      this.runDebugAction("reset");
     }
 
     if (actions.warpSlimes) {
@@ -370,8 +401,14 @@ export class AeolianWilds {
     this.lastMessage = visible ? "Debug panel enabled. Use 7 town, 8 slimes, 9 equip, M menu." : "Debug panel hidden.";
   }
 
-  private runDebugAction(action: "town" | "slimes" | "equip" | "collide"): void {
-    if (action === "town" && this.town) {
+  private runDebugAction(action: "reset" | "town" | "slimes" | "equip" | "collide"): void {
+    if (action === "reset") {
+      this.quest = createTutorialQuest();
+      this.selectedEnemyId = "";
+      this.enemyHitUntil.clear();
+      this.resetEnemies();
+      this.lastMessage = "Debug reset: quest and meadow slimes restored.";
+    } else if (action === "town" && this.town) {
       this.player.teleportTo(this.town.playerSpawn.x, this.town.playerSpawn.z, this.streamer.terrain, this.town.playerSpawn.yaw, this.playerAvatar);
       this.lastMessage = "Debug warp: returned to Briar Glen.";
     } else if (action === "slimes" && this.town) {
@@ -388,7 +425,7 @@ export class AeolianWilds {
       this.rebuildPlayerAvatar();
       this.lastMessage = "Debug equip: swapped outfit colors and gear.";
     } else if (action === "collide" && this.town) {
-      this.player.teleportTo(-15, -10, this.streamer.terrain, -Math.PI / 2, this.playerAvatar);
+      this.player.teleportTo(-25.2, -16, this.streamer.terrain, -Math.PI / 2, this.playerAvatar);
       this.lastMessage = "Debug collision: placed against a cottage blocker.";
     }
   }
@@ -434,9 +471,14 @@ export class AeolianWilds {
     const result = strikeEnemy(this.character, actor.enemy);
     this.character = result.character;
     actor.enemy = result.enemy;
+    const now = this.clock.elapsedTime;
+    this.playerAttackStarted = now;
+    this.playerAttackUntil = now + 0.36;
+    this.enemyHitUntil.set(actor.enemy.id, now + 0.32);
+    this.sound.playStrike(this.character.classKey);
+    this.sound.playHit(result.defeated);
 
     if (result.defeated) {
-      actor.mesh.visible = false;
       this.quest = recordTutorialKill(this.quest);
       this.lastMessage = `Defeated ${actor.enemy.name}. +${result.goldAwarded} gold.`;
       this.selectedEnemyId = "";
@@ -453,9 +495,22 @@ export class AeolianWilds {
       const selected = actor.enemy.id === this.selectedEnemyId;
       const bounce = Math.sin(elapsed * 3.2 + index * 0.9);
       const hpScale = actor.enemy.alive ? 0.75 + (actor.enemy.hp / actor.enemy.maxHp) * 0.25 : 0.75;
-      actor.mesh.position.set(actor.spawn.x, height + 0.12 + Math.abs(bounce) * 0.22, actor.spawn.z);
-      actor.mesh.scale.set(hpScale * (1.04 - Math.abs(bounce) * 0.05), hpScale * (0.95 + Math.abs(bounce) * 0.12), hpScale);
+      const hitRemaining = Math.max(0, (this.enemyHitUntil.get(actor.enemy.id) ?? 0) - elapsed);
+      const hitPulse = hitRemaining > 0 ? Math.sin((1 - hitRemaining / 0.32) * Math.PI) : 0;
+      actor.mesh.position.set(
+        actor.spawn.x + hitPulse * Math.sin(elapsed * 34 + index) * 0.22,
+        height + 0.12 + Math.abs(bounce) * 0.22 + hitPulse * 0.34,
+        actor.spawn.z + hitPulse * Math.cos(elapsed * 31 + index) * 0.22
+      );
+      actor.mesh.scale.set(
+        hpScale * (1.04 - Math.abs(bounce) * 0.05 + hitPulse * 0.18),
+        hpScale * (0.95 + Math.abs(bounce) * 0.12 - hitPulse * 0.1),
+        hpScale * (1 + hitPulse * 0.12)
+      );
       actor.mesh.rotation.y += 0.018 + index * 0.003;
+      if (!actor.enemy.alive && hitRemaining <= 0) {
+        actor.mesh.visible = false;
+      }
       if (selected) {
         this.selectionRing.visible = true;
         this.selectionRing.position.set(actor.spawn.x, height + 0.12, actor.spawn.z);
@@ -468,6 +523,39 @@ export class AeolianWilds {
 
   private getSelectedEnemy(): EnemyActor | undefined {
     return this.enemies.find((actor) => actor.enemy.id === this.selectedEnemyId && actor.enemy.alive);
+  }
+
+  private animatePlayerAttack(elapsed: number): void {
+    if (!this.playerModel) {
+      return;
+    }
+
+    if (elapsed >= this.playerAttackUntil) {
+      this.playerModel.rotation.x = 0;
+      this.playerModel.rotation.z = 0;
+      return;
+    }
+
+    const duration = Math.max(0.01, this.playerAttackUntil - this.playerAttackStarted);
+    const t = THREE.MathUtils.clamp((elapsed - this.playerAttackStarted) / duration, 0, 1);
+    const swing = Math.sin(t * Math.PI);
+    const snap = Math.sin(t * Math.PI * 2);
+    this.playerModel.rotation.x = -swing * 0.22;
+    this.playerModel.rotation.z = snap * 0.12;
+  }
+
+  private positionPreviewAvatar(elapsed: number): void {
+    this.previewAvatar.visible = this.mode === "title" || this.mode === "settings";
+    if (!this.previewAvatar.visible) {
+      return;
+    }
+
+    this.previewWorld.copy(this.previewOffset);
+    this.camera.localToWorld(this.previewWorld);
+    this.previewAvatar.position.copy(this.previewWorld);
+    this.previewAvatar.lookAt(this.camera.position.x, this.previewAvatar.position.y, this.camera.position.z);
+    this.previewAvatar.rotateY(Math.PI);
+    this.previewAvatar.rotation.z = Math.sin(elapsed * 1.7) * 0.035;
   }
 
   private resolvePlayerCollisions(position: THREE.Vector3, actorRadius: number): void {
@@ -493,7 +581,7 @@ export class AeolianWilds {
 
     if (hits > 0) {
       this.lastCollisionHits = hits;
-      this.collisionDisplayFrames = 24;
+      this.collisionDisplayFrames = 90;
     } else if (this.collisionDisplayFrames > 0) {
       this.collisionDisplayFrames -= 1;
     } else {
@@ -503,6 +591,19 @@ export class AeolianWilds {
 
   private animateTown(elapsed: number): void {
     this.town?.group.traverse((object) => {
+      if (object.userData.questMarker) {
+        const baseY = Number(object.userData.baseY) || object.position.y;
+        object.position.y = baseY + Math.sin(elapsed * 2.8) * 0.22;
+        object.rotation.y += 0.035;
+        return;
+      }
+
+      if (object.userData.windowGlow) {
+        const glow = 0.88 + Math.sin(elapsed * 3.4 + object.position.x * 0.11) * 0.12;
+        object.scale.setScalar(glow);
+        return;
+      }
+
       if (!object.userData.idleNpc) {
         return;
       }
@@ -600,6 +701,19 @@ export class AeolianWilds {
       scale: 1.25
     });
     this.playerAvatar.add(this.playerModel);
+  }
+
+  private updatePreviewAvatar(draft: CharacterDraft): void {
+    this.previewDraft = draft;
+    this.previewAvatar.clear();
+    this.previewModel = createHumanoidModel({
+      classKey: draft.classKey,
+      primaryColor: draft.primaryColor,
+      accentColor: draft.accentColor,
+      outfitVariant: draft.outfitVariant,
+      scale: 1.55
+    });
+    this.previewAvatar.add(this.previewModel);
   }
 
   dispose(): void {

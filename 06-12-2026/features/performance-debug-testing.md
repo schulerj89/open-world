@@ -93,3 +93,21 @@ A later visible Chrome run on `127.0.0.1:4200` removed gameplay `backdrop-filter
   - Town/tree/NPC view changed by `135,660` PNG bytes over 1.8 seconds.
   - Slime view changed by `147,211` PNG bytes over 1.2 seconds.
 - Collision verification on `127.0.0.1:4202` held `60 FPS` while resolving the cottage collision probe.
+
+## Asset, Collision, And Combat Visible Audit
+
+A later visible Chrome pass tested production preview on `127.0.0.1:4203`.
+
+- Title screen showed the live 3D character preview and the character controls updated the preview model before entering the world.
+- Gameplay launched with WebGPU renderer, adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, and `16384px texture`.
+- The debug HUD reported separate blocker counts: `72 tree / 81 town / 3 enemy blockers` near the final collision probe.
+- Movement changed X/Z from `-8.0 / 10.0` to `2.7 / -9.8`.
+- Keyboard look changed yaw/pitch from `-31.5 / 16.0` to `-132.2 / -11.5`.
+- Jump raised Y from `9.0` to `10.0`, changed grounded to `no`, then returned to grounded.
+- Slime warp, target, and strike were verified. Strike reduced Meadow Slime 1 from `52 / 52` to `22 / 52`.
+- Attack animation evidence was captured by screenshot byte delta of `157,908` changed bytes immediately after a strike.
+- Ambient/world animation evidence was captured by screenshot byte delta of `156,800` changed bytes over 1.2 seconds on the slime view.
+- Defeating Meadow Slime 1 awarded `6g` and reduced live enemy blockers from `3` to `2`.
+- `6 Reset` restored the quest to `0 / 2`, cleared the target, and restored live enemy blockers to `3`.
+- `0 Collide` placed the player against the expanded cottage blocker; final HUD showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`.
+- Final collision probe held `60 FPS`, `16.7 ms` frame time, and about `368 calls / 85,224 estimated tris`.
