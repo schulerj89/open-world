@@ -45,6 +45,17 @@ const grassMaterials = [
 const trunkMaterial = new THREE.MeshLambertMaterial({ color: "#5a3b24" });
 const leafMaterial = new THREE.MeshLambertMaterial({ color: "#5e9656" });
 const darkLeafMaterial = new THREE.MeshLambertMaterial({ color: "#3f7548" });
+const grassCardGeometry = markSharedGeometry(createGrassCardGeometry());
+const trunkGeometry = markSharedGeometry(new THREE.CylinderGeometry(0.2, 0.38, 1, 6));
+const coneGeometry = markSharedGeometry(new THREE.ConeGeometry(1, 1, 8));
+const roundGeometry = markSharedGeometry(new THREE.IcosahedronGeometry(1, 1));
+
+export function updateGrassWindMaterials(time: number, strength: number): void {
+  grassMaterials.forEach((material, index) => {
+    const pulse = 0.88 + Math.sin(time * 1.8 + index * 0.9) * strength * 0.16;
+    material.color.setRGB(0.38 * pulse, 0.58 * pulse, 0.32 * pulse);
+  });
+}
 
 export class NatureFactory {
   private readonly noise = new Noise(415);
@@ -76,7 +87,7 @@ export class NatureFactory {
       stats.grassInstances += grass.stats.grassInstances;
     }
 
-    if (lod <= 2 && treeDensity > 0.03) {
+    if (lod <= 1 && treeDensity > 0.03) {
       const trees = this.buildTrees(chunkX, chunkZ, chunkSize, terrain, treeDensity, lod);
       group.add(trees.group);
       windTargets.push(...trees.windTargets);
@@ -100,8 +111,7 @@ export class NatureFactory {
     const group = new THREE.Group();
     const windTargets: THREE.Object3D[] = [];
     const bandCount = 2;
-    const countPerBand = Math.max(10, Math.floor(32 * density));
-    const bladeGeometry = createGrassCardGeometry();
+    const countPerBand = Math.max(8, Math.floor(24 * density));
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
     const rotation = new THREE.Euler();
@@ -109,7 +119,7 @@ export class NatureFactory {
 
     for (let band = 0; band < bandCount; band += 1) {
       const material = grassMaterials[band % grassMaterials.length];
-      const mesh = new THREE.InstancedMesh(bladeGeometry, material, countPerBand);
+      const mesh = new THREE.InstancedMesh(grassCardGeometry, material, countPerBand);
       mesh.castShadow = false;
       mesh.receiveShadow = true;
       mesh.userData.windPhase = band * 0.9 + this.noise.value(chunkX + band, chunkZ);
@@ -170,7 +180,7 @@ export class NatureFactory {
   ): NatureBuildResult {
     const group = new THREE.Group();
     const windTargets: THREE.Object3D[] = [];
-    const treeCount = Math.floor((lod === 0 ? 18 : lod === 1 ? 8 : 3) * density);
+    const treeCount = Math.floor((lod === 0 ? 10 : lod === 1 ? 3 : 0) * density);
 
     if (treeCount < 1) {
       return {
@@ -186,9 +196,6 @@ export class NatureFactory {
       };
     }
 
-    const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.38, 1, 6);
-    const coneGeometry = new THREE.ConeGeometry(1, 1, 8);
-    const roundGeometry = new THREE.IcosahedronGeometry(1, 1);
     const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, treeCount);
     const cones = [
       new THREE.InstancedMesh(coneGeometry, leafMaterial, treeCount),
@@ -294,5 +301,10 @@ function createGrassCardGeometry(): THREE.BufferGeometry {
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
+  return geometry;
+}
+
+function markSharedGeometry<T extends THREE.BufferGeometry>(geometry: T): T {
+  geometry.userData.shared = true;
   return geometry;
 }

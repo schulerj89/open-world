@@ -16,10 +16,10 @@ export class AdaptiveBudget {
     return {
       cpuBudget: Math.max(1, Math.round(settings.cpuBudget * (1 - p * 0.65))),
       memoryBudgetMb: settings.memoryBudgetMb,
-      renderDistance: Math.max(3, Math.round(settings.renderDistance - p * 5)),
-      grassDensity: Math.max(0.05, settings.grassDensity * (1 - p * 0.86)),
-      treeDensity: Math.max(0.12, settings.treeDensity * (1 - p * 0.6)),
-      resolutionScale: Math.max(0.28, settings.resolutionScale * (1 - p * 0.68))
+      renderDistance: Math.max(1, Math.round(settings.renderDistance - p * 6.25)),
+      grassDensity: Math.max(0.03, settings.grassDensity * (1 - p * 0.9)),
+      treeDensity: Math.max(0.06, settings.treeDensity * (1 - p * 0.82)),
+      resolutionScale: Math.max(0.14, settings.resolutionScale * (1 - p * 0.78))
     };
   }
 

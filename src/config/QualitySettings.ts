@@ -13,7 +13,7 @@ export const defaultSettings: QualitySettings = {
   renderDistance: 7,
   grassDensity: 0.82,
   treeDensity: 0.82,
-  resolutionScale: 0.7
+  resolutionScale: 0.42
 };
 
 export type SettingsKey = keyof QualitySettings;

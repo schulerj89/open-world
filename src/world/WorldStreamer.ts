@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { QualitySettings } from "../config/QualitySettings";
-import { NatureFactory } from "./NatureFactory";
+import { NatureFactory, updateGrassWindMaterials } from "./NatureFactory";
 import { TerrainChunk } from "./TerrainChunk";
 import { TerrainHeight } from "./TerrainHeight";
 
@@ -13,6 +13,7 @@ type BuildJob = {
 
 export type StreamStats = {
   chunks: number;
+  cachedChunks: number;
   queued: number;
   estimatedMb: number;
   memoryBudgetMb: number;
@@ -38,15 +39,19 @@ export class WorldStreamer {
   private readonly queue = new Map<string, BuildJob>();
   private frame = 0;
   private estimatedMb = 0;
-  private readonly keepWarmFrames = 8;
+  private readonly keepWarmFrames = 72;
 
-  update(cameraPosition: THREE.Vector3, settings: QualitySettings): void {
+  update(cameraPosition: THREE.Vector3, settings: QualitySettings, frameMs: number): void {
     this.frame += 1;
     const centerX = Math.round(cameraPosition.x / this.chunkSize);
     const centerZ = Math.round(cameraPosition.z / this.chunkSize);
     const renderDistance = Math.max(2, Math.round(settings.renderDistance));
     this.lastRenderDistance = renderDistance;
     this.lastMemoryBudgetMb = settings.memoryBudgetMb;
+
+    for (const chunk of this.chunks.values()) {
+      chunk.group.visible = false;
+    }
 
     for (let z = -renderDistance; z <= renderDistance; z += 1) {
       for (let x = -renderDistance; x <= renderDistance; x += 1) {
@@ -58,37 +63,27 @@ export class WorldStreamer {
         const chunkX = centerX + x;
         const chunkZ = centerZ + z;
         const key = TerrainChunk.key(chunkX, chunkZ);
-        const lod = distance < 2.2 ? 0 : distance < renderDistance * 0.58 ? 1 : 2;
+        const lod = distance < 1.35 ? 0 : distance < Math.max(2.15, renderDistance * 0.55) ? 1 : 2;
         const existing = this.chunks.get(key);
 
         if (existing) {
           existing.lastTouchedFrame = this.frame;
+          existing.group.visible = true;
         } else if (!this.queue.has(key)) {
           this.queue.set(key, { chunkX, chunkZ, distance, lod });
         }
       }
     }
 
-    this.processQueue(settings);
-    this.evict(cameraPosition, settings, renderDistance);
+    this.processQueue(settings, frameMs);
+
+    if (this.frame % 8 === 0 || this.estimatedMb > settings.memoryBudgetMb) {
+      this.evict(cameraPosition, settings, renderDistance);
+    }
   }
 
   animateWind(time: number, strength: number): void {
-    for (const chunk of this.chunks.values()) {
-      for (const target of chunk.windTargets) {
-        if (target.userData.windKind !== "grass") {
-          continue;
-        }
-
-        const phase = Number(target.userData.windPhase ?? 0);
-        const pulse = 0.88 + Math.sin(time * 1.8 + phase) * strength * 0.16;
-        const material = target instanceof THREE.InstancedMesh ? target.material : undefined;
-
-        if (material instanceof THREE.MeshLambertMaterial) {
-          material.color.setRGB(0.38 * pulse, 0.58 * pulse, 0.32 * pulse);
-        }
-      }
-    }
+    updateGrassWindMaterials(time, strength);
   }
 
   getStats(): StreamStats {
@@ -101,6 +96,10 @@ export class WorldStreamer {
     let broadleafCrowns = 0;
 
     for (const chunk of this.chunks.values()) {
+      if (!chunk.group.visible) {
+        continue;
+      }
+
       if (chunk.lod === 0) {
         lod0 += 1;
       } else if (chunk.lod === 1) {
@@ -115,7 +114,8 @@ export class WorldStreamer {
     }
 
     return {
-      chunks: this.chunks.size,
+      chunks: lod0 + lod1 + lod2,
+      cachedChunks: this.chunks.size,
       queued: this.queue.size,
       estimatedMb: this.estimatedMb,
       memoryBudgetMb: this.lastMemoryBudgetMb,
@@ -138,14 +138,25 @@ export class WorldStreamer {
     this.queue.clear();
   }
 
-  private processQueue(settings: QualitySettings): void {
-    const jobs = [...this.queue.values()].sort((a, b) => a.distance - b.distance);
-    const jobsThisFrame = Math.max(1, Math.round(settings.cpuBudget));
+  private processQueue(settings: QualitySettings, frameMs: number): void {
+    const pressureSkip = frameMs > 28 && this.chunks.size > 8;
+    if (pressureSkip) {
+      return;
+    }
 
-    for (let i = 0; i < Math.min(jobsThisFrame, jobs.length); i += 1) {
-      const job = jobs[i];
+    const maxJobs = Math.max(1, Math.min(2, Math.round(settings.cpuBudget)));
+    const deadline = performance.now() + Math.max(2.5, Math.min(5, settings.cpuBudget * 1.2));
+
+    for (let i = 0; i < maxJobs && this.queue.size > 0; i += 1) {
+      if (i > 0 && performance.now() >= deadline) {
+        break;
+      }
+
+      const job = this.takeNearestJob();
+      if (!job) {
+        break;
+      }
       const key = TerrainChunk.key(job.chunkX, job.chunkZ);
-      this.queue.delete(key);
 
       const nature = this.nature.buildChunk(
         job.chunkX,
@@ -165,15 +176,34 @@ export class WorldStreamer {
         nature
       });
       chunk.lastTouchedFrame = this.frame;
+      chunk.group.visible = true;
       this.estimatedMb += chunk.estimatedMb;
       this.chunks.set(chunk.key, chunk);
       this.group.add(chunk.group);
     }
   }
 
+  private takeNearestJob(): BuildJob | undefined {
+    let bestKey = "";
+    let bestJob: BuildJob | undefined;
+
+    for (const [key, job] of this.queue) {
+      if (!bestJob || job.distance < bestJob.distance) {
+        bestKey = key;
+        bestJob = job;
+      }
+    }
+
+    if (bestJob) {
+      this.queue.delete(bestKey);
+    }
+
+    return bestJob;
+  }
+
   private evict(cameraPosition: THREE.Vector3, settings: QualitySettings, renderDistance: number): void {
     const maxAge = this.keepWarmFrames;
-    const maxDistance = (renderDistance + 1.5) * this.chunkSize;
+    const maxDistance = (renderDistance + 2.0) * this.chunkSize;
     const hardMemory = settings.memoryBudgetMb;
     const chunks = [...this.chunks.values()];
     const evictionCandidates = chunks

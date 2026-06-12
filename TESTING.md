@@ -58,3 +58,14 @@ These values help separate app bugs from renderer/platform differences. For exam
 8. Move near trees and verify trunks have crowns.
 9. Confirm the `GPU`, `Adapter`, and `Features` rows are populated.
 10. Confirm the HUD remains near 60 FPS after the chunk queue settles.
+
+## Performance Test Target
+
+Use the production build for FPS validation:
+
+1. Run `npm run build`.
+2. Run `npm run preview`.
+3. Open `http://127.0.0.1:4188/`.
+4. Test movement, drag-look, and far travel from that preview page.
+
+The Vite dev server is useful for functional checks, but HMR/debug overhead can produce misleading FPS readings. Treat `npm run preview` as the authoritative local performance target.

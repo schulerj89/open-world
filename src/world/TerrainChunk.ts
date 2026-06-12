@@ -61,39 +61,56 @@ export class TerrainChunk {
   dispose(): void {
     this.group.traverse((object) => {
       if (object instanceof THREE.Mesh || object instanceof THREE.InstancedMesh) {
-        object.geometry.dispose();
+        if (!object.geometry.userData.shared) {
+          object.geometry.dispose();
+        }
       }
     });
   }
 
   private buildTerrain(params: TerrainChunkParams): THREE.Mesh {
-    const segments = params.lod === 0 ? 32 : params.lod === 1 ? 18 : 10;
+    const segments = params.lod === 0 ? 22 : params.lod === 1 ? 10 : 5;
     const vertexCount = (segments + 1) * (segments + 1);
     const positions = new Float32Array(vertexCount * 3);
     const colors = new Float32Array(vertexCount * 3);
     const uvs = new Float32Array(vertexCount * 2);
+    const heights = new Float32Array(vertexCount);
+    const riverInfluences = new Float32Array(vertexCount);
     const indices: number[] = [];
     const color = new THREE.Color();
+    const snowColor = new THREE.Color("#f2f0e8");
     let rocky = 0;
-    let cursor = 0;
 
     for (let z = 0; z <= segments; z += 1) {
       for (let x = 0; x <= segments; x += 1) {
+        const cursor = z * (segments + 1) + x;
         const px = (x / segments - 0.5) * params.chunkSize + params.chunkX * params.chunkSize;
         const pz = (z / segments - 0.5) * params.chunkSize + params.chunkZ * params.chunkSize;
         const py = params.terrain.getHeight(px, pz);
+        const river = params.terrain.getRiverInfo(px, pz);
+
+        heights[cursor] = py;
+        riverInfluences[cursor] = river.influence;
         positions[cursor * 3] = px;
         positions[cursor * 3 + 1] = py;
         positions[cursor * 3 + 2] = pz;
         uvs[cursor * 2] = px / 22;
         uvs[cursor * 2 + 1] = pz / 22;
+      }
+    }
 
-        const slope = Math.abs(params.terrain.getHeight(px + 1.2, pz) - py) + Math.abs(params.terrain.getHeight(px, pz + 1.2) - py);
-        const river = params.terrain.getRiverInfo(px, pz);
-        if (river.influence > 0.35) {
+    for (let z = 0; z <= segments; z += 1) {
+      for (let x = 0; x <= segments; x += 1) {
+        const cursor = z * (segments + 1) + x;
+        const py = heights[cursor];
+        const east = heights[z * (segments + 1) + Math.min(segments, x + 1)];
+        const south = heights[Math.min(segments, z + 1) * (segments + 1) + x];
+        const slope = Math.abs(east - py) + Math.abs(south - py);
+
+        if (riverInfluences[cursor] > 0.35) {
           color.set("#6b8e5a");
         } else if (py > 88) {
-          color.set("#b9b7ad").lerp(new THREE.Color("#f2f0e8"), Math.min(1, (py - 58) / 90));
+          color.set("#b9b7ad").lerp(snowColor, Math.min(1, (py - 58) / 90));
           rocky += 1;
         } else if (slope > 4.7) {
           color.set("#8a866f");
@@ -106,7 +123,6 @@ export class TerrainChunk {
         colors[cursor * 3] = color.r;
         colors[cursor * 3 + 1] = color.g;
         colors[cursor * 3 + 2] = color.b;
-        cursor += 1;
       }
     }
 

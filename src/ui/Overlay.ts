@@ -173,6 +173,7 @@ export class Overlay {
         <div><span>Live</span><strong>${stats.chunks}</strong></div>
         <div><span>Queue</span><strong>${stats.queued}</strong></div>
       </div>
+      <div class="metric-row"><span>Cached chunks</span><span>${stats.cachedChunks}</span></div>
       <div class="metric-row"><span>Cache</span><span>${stats.estimatedMb.toFixed(1)} / ${stats.memoryBudgetMb.toFixed(0)} MB</span></div>
       <div class="meter"><i style="width:${memoryPercent}%"></i></div>
       <div class="metric-row"><span>LOD rings</span><span>${stats.lod0} near / ${stats.lod1} mid / ${stats.lod2} far</span></div>

@@ -34,6 +34,7 @@ export class AeolianWilds {
   private modeBeforeSettings: Mode = "title";
   private animationId = 0;
   private appliedPixelRatio = 0;
+  private lastHudUpdate = Number.NEGATIVE_INFINITY;
 
   constructor(host: HTMLElement) {
     this.overlay = new Overlay(host, this.settings, {
@@ -121,23 +122,26 @@ export class AeolianWilds {
       this.player.setTitleOrbit(elapsed, 138, this.streamer.terrain);
     }
 
-    this.streamer.update(this.camera.position, runtimeSettings);
+    this.streamer.update(this.camera.position, runtimeSettings, this.performance.getFrameMs());
     this.streamer.animateWind(elapsed, wind);
     this.sound.setIntensity(wind);
     this.performance.update(delta);
     this.applyResolutionScale(runtimeSettings.resolutionScale);
-    this.overlay.updateHud(
-      this.performance.getFps(),
-      this.performance.getFrameMs(),
-      this.streamer.getStats(),
-      wind,
-      {
-        ...this.player.getDebugState(),
-        pointerLocked: this.controls?.state.pointerLocked ?? false,
-        dragLook: this.controls?.state.dragLook ?? false
-      },
-      this.gpuDebug
-    );
+    if (elapsed - this.lastHudUpdate >= 0.125) {
+      this.lastHudUpdate = elapsed;
+      this.overlay.updateHud(
+        this.performance.getFps(),
+        this.performance.getFrameMs(),
+        this.streamer.getStats(),
+        wind,
+        {
+          ...this.player.getDebugState(),
+          pointerLocked: this.controls?.state.pointerLocked ?? false,
+          dragLook: this.controls?.state.dragLook ?? false
+        },
+        this.gpuDebug
+      );
+    }
 
     this.renderer?.render(this.scene, this.camera);
   };
