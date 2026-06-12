@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { getTextureAssets } from "../render/TextureAssets";
-import { resolveCircleCollision, type CircleCollider } from "./Collision";
+import { resolveCircleCollisionDetailed, type CircleCollider, type CollisionHit } from "./Collision";
 import type { TerrainHeight } from "./TerrainHeight";
 import type { NatureBuildResult, NatureStats, NatureWindTarget } from "./NatureFactory";
 
@@ -92,13 +92,20 @@ export class TerrainChunk {
   }
 
   resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
+    return this.resolveCollisionDetailed(position, actorRadius).hits;
+  }
+
+  resolveCollisionDetailed(position: { x: number; z: number }, actorRadius: number): { hits: number; lastHit?: CollisionHit } {
     let hits = 0;
+    let lastHit: CollisionHit | undefined;
     for (const collider of this.colliders) {
-      if (resolveCircleCollision(position, collider, actorRadius)) {
+      const hit = resolveCircleCollisionDetailed(position, collider, actorRadius, collider.owner ?? `chunk ${this.key}`);
+      if (hit) {
         hits += 1;
+        lastHit = hit;
       }
     }
-    return hits;
+    return { hits, lastHit };
   }
 
   private buildTerrain(params: TerrainChunkParams): THREE.Mesh {

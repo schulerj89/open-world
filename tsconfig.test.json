@@ -10,5 +10,5 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "include": ["src/config/**/*.ts", "src/game/**/*.ts", "tests/**/*.ts"]
+  "include": ["src/config/**/*.ts", "src/game/**/*.ts", "src/world/Collision.ts", "tests/**/*.ts"]
 }

@@ -4,6 +4,7 @@ import { createCharacter, healCharacter } from "../src/game/Character.js";
 import { createBeginnerEnemy, strikeEnemy } from "../src/game/CombatSystem.js";
 import { performancePresets, resolvePerformanceSettings } from "../src/game/PerformancePresets.js";
 import { createTutorialQuest, getTutorialInstruction, recordTutorialKill } from "../src/game/QuestSystem.js";
+import { resolveCircleCollisionDetailed } from "../src/world/Collision.js";
 
 test("character creation sanitizes names and applies class stats", () => {
   const character = createCharacter({
@@ -84,4 +85,28 @@ test("healing is capped at max hp", () => {
 
   assert.equal(result.character.hp, wounded.maxHp);
   assert.equal(result.healed, wounded.maxHp - 35);
+});
+
+test("circle collision pushes exact-center overlaps out of blockers", () => {
+  const position = { x: 10, z: -4 };
+  const hit = resolveCircleCollisionDetailed(
+    position,
+    { x: 10, z: -4, radius: 2, kind: "building", owner: "test cottage" },
+    0.75
+  );
+
+  assert.ok(hit);
+  assert.equal(hit.kind, "building");
+  assert.equal(hit.owner, "test cottage");
+  assert.equal(hit.distanceBefore, 0);
+  assert.equal(position.x, 12.75);
+  assert.equal(position.z, -4);
+});
+
+test("circle collision ignores non-overlapping blockers", () => {
+  const position = { x: 8, z: 0 };
+  const hit = resolveCircleCollisionDetailed(position, { x: 0, z: 0, radius: 2, kind: "tree" }, 0.75);
+
+  assert.equal(hit, undefined);
+  assert.deepEqual(position, { x: 8, z: 0 });
 });

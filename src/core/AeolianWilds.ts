@@ -8,7 +8,7 @@ import { createTutorialQuest, getTutorialInstruction, recordTutorialKill, type T
 import { createRenderer, configureRenderer, type WebGpuDebugInfo } from "../render/RendererFactory";
 import { Overlay } from "../ui/Overlay";
 import { createMeadowSlimeModel } from "../world/CreatureModels.js";
-import { resolveCircleCollision } from "../world/Collision.js";
+import { resolveCircleCollisionDetailed, type CollisionHit } from "../world/Collision.js";
 import { createHumanoidModel } from "../world/HumanoidModel.js";
 import { createSky } from "../world/Sky";
 import { StarterTown } from "../world/StarterTown.js";
@@ -97,6 +97,7 @@ export class AeolianWilds {
   private nextAttackAt = 0;
   private readonly floatingLabels: FloatingLabel[] = [];
   private lastCollisionHits = 0;
+  private lastCollisionDetail = "none";
   private collisionDisplayFrames = 0;
   private lastMessage = "Create a character and enter Briar Glen.";
   private mode: Mode = "title";
@@ -245,7 +246,6 @@ export class AeolianWilds {
 
   private loop = (): void => {
     this.animationId = requestAnimationFrame(this.loop);
-    const frameStart = performance.now();
     const rawDelta = this.clock.getDelta();
     const delta = Math.min(0.05, rawDelta);
     const elapsed = this.clock.elapsedTime;
@@ -292,6 +292,7 @@ export class AeolianWilds {
           pointerLocked: this.controls?.state.pointerLocked ?? false,
           dragLook: this.controls?.state.dragLook ?? false,
           collisionHits: this.lastCollisionHits,
+          collisionDetail: this.lastCollisionDetail,
           townColliders: this.town?.colliders.length ?? 0,
           enemyColliders: this.enemies.filter((actor) => actor.enemy.alive).length
         },
@@ -713,14 +714,14 @@ export class AeolianWilds {
   }
 
   private resolvePlayerCollisions(position: THREE.Vector3, actorRadius: number): void {
-    let hits = this.streamer.resolveCollision(position, actorRadius);
+    const streamResult = this.streamer.resolveCollisionDetailed(position, actorRadius);
+    let hits = streamResult.hits;
+    let lastHit = streamResult.lastHit;
 
     if (this.town) {
-      for (const collider of this.town.colliders) {
-        if (resolveCircleCollision(position, collider, actorRadius)) {
-          hits += 1;
-        }
-      }
+      const townResult = this.town.resolveCollisionDetailed(position, actorRadius);
+      hits += townResult.hits;
+      lastHit = townResult.lastHit ?? lastHit;
     }
 
     for (const actor of this.enemies) {
@@ -728,19 +729,36 @@ export class AeolianWilds {
         continue;
       }
 
-      if (resolveCircleCollision(position, { x: actor.spawn.x, z: actor.spawn.z, radius: 1.75, kind: "enemy" }, actorRadius)) {
+      const hit = resolveCircleCollisionDetailed(
+        position,
+        { x: actor.spawn.x, z: actor.spawn.z, radius: 1.75, kind: "enemy", owner: actor.enemy.name },
+        actorRadius,
+        actor.enemy.name
+      );
+      if (hit) {
         hits += 1;
+        lastHit = hit;
       }
     }
 
     if (hits > 0) {
       this.lastCollisionHits = hits;
-      this.collisionDisplayFrames = 90;
+      this.lastCollisionDetail = this.formatCollisionHit(lastHit);
+      this.collisionDisplayFrames = 240;
     } else if (this.collisionDisplayFrames > 0) {
       this.collisionDisplayFrames -= 1;
     } else {
       this.lastCollisionHits = 0;
+      this.lastCollisionDetail = "none";
     }
+  }
+
+  private formatCollisionHit(hit?: CollisionHit): string {
+    if (!hit) {
+      return "unknown source";
+    }
+
+    return `${hit.kind} / ${hit.owner} / push ${hit.push.toFixed(2)} / at X ${hit.colliderX.toFixed(1)} Z ${hit.colliderZ.toFixed(1)}`;
   }
 
   private animateTown(elapsed: number): void {

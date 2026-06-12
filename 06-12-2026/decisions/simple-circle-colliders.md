@@ -17,3 +17,18 @@ The current art style is low-poly and the game already streams procedural object
 ## Debugging
 
 The HUD reports recent collision pushes and visible tree blocker count. The `0 Collide` quick tool intentionally places the player against a cottage blocker so collision can be verified in the browser without walking across the map.
+
+## June 12 Robustness Update
+
+`resolveCircleCollisionDetailed` now returns hit metadata in addition to pushing the actor out:
+
+- collider kind,
+- owning asset/name,
+- push distance,
+- collider center,
+- collider radius,
+- distance before the push.
+
+The old boolean `resolveCircleCollision` wrapper remains for simple callers. Exact-center overlaps now push deterministically instead of failing to resolve, which fixes a known edge case for debug teleports or dense blocker placement.
+
+The debug HUD now includes a `Last hit` row so browser QA can trace whether the most recent push came from a building, fence, tree, enemy, NPC, or prop.

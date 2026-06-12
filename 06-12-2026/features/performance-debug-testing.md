@@ -150,3 +150,16 @@ A follow-up visible Chrome pass tested production preview on `127.0.0.1:4206`.
 - WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere adapter metadata, `19` features, and `16384px texture`.
 - The current default/Balanced resolution scale is `0.45` after the character-detail pass.
 - Final HUD sample showed `30 FPS`, `RAF 33.3 ms`, page `visible`, about `508 calls / 95,872 estimated tris`, and render submit around `2.8 ms`. CPU work stayed low (`sim 0.1 / stream 0.1 / hud 0.0 ms`), so this Chrome session appeared RAF-paced at 30 Hz rather than app-work limited. This does not prove the full 60 FPS goal for the new character pass; it proves render/CPU headroom was under budget in that session.
+
+## Collision Diagnostics Visible Audit
+
+A follow-up visible Chrome pass tested production preview on `127.0.0.1:4207`.
+
+- The collision resolver now returns detailed hit metadata, and the debug HUD includes `Last hit`.
+- `0 Collide` placed the player against the cottage blocker and immediately reported `Collision 1 hits / 57 tree / 81 town / 3 enemy blockers`.
+- Immediate HUD readback showed `Last hit building / starter-town / push 2.06 / at X -30.0 Z -16.0`.
+- After returning to the stable manual RAF loop, one warm-cache sample held `60 FPS`, `16.7 ms` frame time, `177` live chunks, queue `0`, and about `787 calls / 138,068 estimated tris`.
+- A fresh reload later exposed a streamer pressure bug: when RAF was already paced at about `33.3 ms`, the old pressure path could leave the chunk queue stuck. The streamer now builds one queued chunk per pressure frame instead of returning early.
+- The fresh reload after that fix drained to queue `0`; final sample showed `30 FPS`, `RAF 33.3 ms`, page `visible`, `21` live chunks, about `524 calls / 100,664 estimated tris`, render submit around `1.8 ms`, and CPU work around `sim 0.1 / stream 0.0 / hud 0.0 ms`.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
+- The Three `renderer.setAnimationLoop` experiment was not kept because the visible Chrome/WebGPU QA path regressed to about `1 FPS` / `RAF ~1017 ms`.

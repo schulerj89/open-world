@@ -15,7 +15,8 @@ The town was the first asset group with many blockers, but the same pattern will
 - `assetKind`, for broad categorization.
 - `colliders`, as a list of circle blockers.
 - `addCircleCollider`, for asset construction.
-- `resolveCollision`, for callers that want the asset to test all owned colliders.
+- `resolveCollision`, for callers that only need a hit count.
+- `resolveCollisionDetailed`, for callers that need the most recent collider source and push metadata.
 
 The active player collision pass still resolves town, streamed terrain, and enemy blockers explicitly in `AeolianWilds` so the debug HUD can report separate blocker counts.
 
@@ -23,3 +24,4 @@ The active player collision pass still resolves town, streamed terrain, and enem
 
 Future assets should inherit from `WorldAsset` when they bundle meshes and blockers together. Enemy groups are the next likely candidate once enemies move beyond the starter slime actors.
 
+The player collision pass now uses the detailed resolver for `StarterTown`, streamed tree chunks, and inline enemy blockers. Enemies are still not full `WorldAsset` instances yet, but their temporary collider metadata now carries the enemy name so debug output is consistent.

@@ -3,6 +3,7 @@ import type { QualitySettings } from "../config/QualitySettings";
 import { NatureFactory, updateGrassWindMaterials } from "./NatureFactory";
 import { TerrainChunk } from "./TerrainChunk";
 import { TerrainHeight } from "./TerrainHeight";
+import type { CollisionHit } from "./Collision";
 
 type BuildJob = {
   chunkX: number;
@@ -140,13 +141,20 @@ export class WorldStreamer {
   }
 
   resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
+    return this.resolveCollisionDetailed(position, actorRadius).hits;
+  }
+
+  resolveCollisionDetailed(position: { x: number; z: number }, actorRadius: number): { hits: number; lastHit?: CollisionHit } {
     let hits = 0;
+    let lastHit: CollisionHit | undefined;
     for (const chunk of this.chunks.values()) {
       if (chunk.group.visible) {
-        hits += chunk.resolveCollision(position, actorRadius);
+        const result = chunk.resolveCollisionDetailed(position, actorRadius);
+        hits += result.hits;
+        lastHit = result.lastHit ?? lastHit;
       }
     }
-    return hits;
+    return { hits, lastHit };
   }
 
   dispose(): void {
@@ -158,13 +166,9 @@ export class WorldStreamer {
   }
 
   private processQueue(settings: QualitySettings, frameMs: number): void {
-    const pressureSkip = frameMs > 28 && this.chunks.size > 8;
-    if (pressureSkip) {
-      return;
-    }
-
-    const maxJobs = Math.max(1, Math.min(2, Math.round(settings.cpuBudget)));
-    const deadline = performance.now() + Math.max(2.5, Math.min(5, settings.cpuBudget * 1.2));
+    const pressureLimited = frameMs > 28 && this.chunks.size > 8;
+    const maxJobs = pressureLimited ? 1 : Math.max(1, Math.min(2, Math.round(settings.cpuBudget)));
+    const deadline = performance.now() + (pressureLimited ? 1.8 : Math.max(2.5, Math.min(5, settings.cpuBudget * 1.2)));
 
     for (let i = 0; i < maxJobs && this.queue.size > 0; i += 1) {
       if (i > 0 && performance.now() >= deadline) {

@@ -46,7 +46,8 @@ export async function createRenderer(
       const renderer = new WebGPURenderer({
         canvas,
         antialias: false,
-        alpha: false
+        alpha: false,
+        powerPreference: "high-performance"
       } as THREE.WebGLRendererParameters);
       const maybeInit = (renderer as unknown as { init?: () => Promise<void> }).init;
       if (maybeInit) {
@@ -97,7 +98,7 @@ async function collectWebGpuDebugInfo(): Promise<WebGpuDebugInfo> {
   const gpu = (navigator as Navigator & {
     gpu?: {
       getPreferredCanvasFormat?: () => string;
-      requestAdapter?: () => Promise<unknown>;
+      requestAdapter?: (options?: { powerPreference?: "high-performance" | "low-power" }) => Promise<unknown>;
     };
   }).gpu;
 
@@ -107,7 +108,7 @@ async function collectWebGpuDebugInfo(): Promise<WebGpuDebugInfo> {
 
   try {
     info.preferredCanvasFormat = gpu.getPreferredCanvasFormat?.();
-    const adapter = await gpu.requestAdapter?.();
+    const adapter = await gpu.requestAdapter?.({ powerPreference: "high-performance" });
     if (!adapter) {
       return info;
     }
