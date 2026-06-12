@@ -16,6 +16,7 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 
 - Buildings use one circle collider per cottage.
 - Cottages are now `TownBuildingAsset` child assets instead of inline `StarterTown` mesh blocks.
+- Walkable stone, road, training-yard, and meadow surfaces are now `TownGroundAsset` child assets instead of inline `StarterTown` meshes.
 - Fences use sampled circle colliders along the rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
@@ -53,6 +54,15 @@ The townsperson mesh/collider path was moved into `TownNpcAsset extends WorldAss
 - The guide NPC still reports `tutorial-guide-npc`, preserving the tutorial collision/debug identity.
 - Idle bob/turn moved onto the asset itself through `TownNpcAsset.update`, so NPC animation is no longer coupled to the core app's scene traversal.
 - Building window glow animation also moved onto `TownBuildingAsset.update`; `StarterTown.update` now recursively updates child assets and only owns the quest marker bob/rotation.
+
+## Ground Asset Extraction
+
+The terrain-following town patch path was moved into `TownGroundAsset extends WorldAsset`.
+
+- Stone center, road strips, training-yard ground, and meadow ground are registered as child assets.
+- Each ground asset builds a segmented terrain-following `BufferGeometry` by sampling the shared height field per vertex.
+- Ground assets intentionally own no colliders; buildings, props, NPCs, enemies, fences, and trees remain the blocking systems.
+- Cobblestones, road-edge stones, shrubs, flowers, and rocks stay in the existing instanced batches to preserve draw-call efficiency.
 
 ## Second Detail Pass
 

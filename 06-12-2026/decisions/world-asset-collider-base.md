@@ -51,3 +51,9 @@ The building asset owns its foundation, lower and upper wall volumes, roof, chim
 This moves people into the same inherited asset/collision path as buildings, enemies, and the debug room. Recursive collision resolution and `getColliderCount()` keep NPC blockers active and visible after extraction.
 
 The town no longer scans every object for `idleNpc` and `windowGlow` flags from the core app loop. `AeolianWilds` calls `StarterTown.update(elapsed)`, then the town updates child assets recursively. `TownNpcAsset` owns NPC idle bob/turn behavior, `TownBuildingAsset` owns window glow animation, and `StarterTown` keeps the quest marker bob/rotation.
+
+## June 12 Ground Asset Extraction
+
+`TownGroundAsset` now represents walkable town ground surfaces such as the stone town center, roads, training yard, and meadow ground. These assets are `WorldAsset` children with zero blockers because they are visual walking surfaces, not collision obstacles.
+
+The ground asset owns the terrain-following segmented `BufferGeometry`, samples the shared `HeightSampler`, and keeps the previous road/stone materials. This moves ground/flooring into the inherited asset tree without changing collision semantics or adding per-stone draw calls.

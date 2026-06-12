@@ -41,3 +41,5 @@ Town owner labels were tightened after the debug-room pass. `Last hit` can now r
 Building extraction keeps the same simple collider shape: `TownBuildingAsset` owns one coarse horizontal circle per cottage. The visual mesh is richer than the collider, by design, because this keeps player movement predictable and avoids expensive per-wall/per-window collision tests.
 
 NPC extraction keeps one simple circle per townsperson. `TownNpcAsset` owns that collider and reports either `tutorial-guide-npc` or the numbered town NPC label in `Last hit`.
+
+Ground extraction does not add collision. `TownGroundAsset` is walkable visual flooring only; the plaza statue base remains a separate `prop / plaza-statue-base` circle collider.

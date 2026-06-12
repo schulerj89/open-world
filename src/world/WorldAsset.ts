@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { resolveCircleCollisionDetailed, type CircleCollider, type CollisionHit } from "./Collision.js";
 
-export type WorldAssetKind = "town" | "building" | "npc" | "enemy" | "foliage" | "prop";
+export type WorldAssetKind = "town" | "ground" | "building" | "npc" | "enemy" | "foliage" | "prop";
 
 export class WorldAsset extends THREE.Group {
   readonly colliders: CircleCollider[] = [];

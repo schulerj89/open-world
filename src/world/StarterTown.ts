@@ -4,6 +4,7 @@ import type { CircleCollider } from "./Collision.js";
 import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { TownBuildingAsset } from "./TownBuildingAsset.js";
+import { TownGroundAsset } from "./TownGroundAsset.js";
 import { TownNpcAsset } from "./TownNpcAsset.js";
 import { WorldAsset } from "./WorldAsset.js";
 
@@ -72,11 +73,11 @@ export class StarterTown extends WorldAsset {
   }
 
   private buildTown(): void {
-    this.addPatch(0, 0, 78, 56, 0.035, this.stoneMaterial, 10);
-    this.addPatch(44, -12, 92, 12, 0.08, this.roadMaterial, 10);
-    this.addPatch(-36, 8, 56, 14, 0.08, this.roadMaterial, 6);
-    this.addPatch(28, 24, 70, 12, 0.08, this.roadMaterial, 7);
-    this.addPatch(74, -8, 52, 42, 0.05, this.grassMaterial, 5);
+    this.addPatch("stone-town-center", 0, 0, 78, 56, 0.035, this.stoneMaterial, 10);
+    this.addPatch("east-road", 44, -12, 92, 12, 0.08, this.roadMaterial, 10);
+    this.addPatch("west-road", -36, 8, 56, 14, 0.08, this.roadMaterial, 6);
+    this.addPatch("north-road", 28, 24, 70, 12, 0.08, this.roadMaterial, 7);
+    this.addPatch("slime-meadow-ground", 74, -8, 52, 42, 0.05, this.grassMaterial, 5);
     this.addCobblestones(0, 0, 70, 48);
     this.addPlaza();
 
@@ -128,6 +129,7 @@ export class StarterTown extends WorldAsset {
   }
 
   private addPatch(
+    name: string,
     x: number,
     z: number,
     width: number,
@@ -136,54 +138,19 @@ export class StarterTown extends WorldAsset {
     material: THREE.Material,
     segments = 1
   ): void {
-    const patch = new THREE.Mesh(this.createGroundPatchGeometry(x, z, width, depth, yOffset, segments), material);
-    patch.receiveShadow = true;
-    this.group.add(patch);
-  }
-
-  private createGroundPatchGeometry(
-    centerX: number,
-    centerZ: number,
-    width: number,
-    depth: number,
-    yOffset: number,
-    segments: number
-  ): THREE.BufferGeometry {
-    const columns = Math.max(1, segments);
-    const rows = Math.max(1, segments);
-    const positions: number[] = [];
-    const uvs: number[] = [];
-    const indices: number[] = [];
-
-    for (let row = 0; row <= rows; row += 1) {
-      const v = row / rows;
-      const localZ = (v - 0.5) * depth;
-      for (let col = 0; col <= columns; col += 1) {
-        const u = col / columns;
-        const localX = (u - 0.5) * width;
-        const worldX = centerX + localX;
-        const worldZ = centerZ + localZ;
-        positions.push(worldX, this.getHeight(worldX, worldZ) + yOffset, worldZ);
-        uvs.push(u, v);
-      }
-    }
-
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < columns; col += 1) {
-        const a = row * (columns + 1) + col;
-        const b = a + 1;
-        const c = a + columns + 1;
-        const d = c + 1;
-        indices.push(a, c, b, b, c, d);
-      }
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-    return geometry;
+    this.addChildAsset(
+      new TownGroundAsset({
+        name,
+        x,
+        z,
+        width,
+        depth,
+        yOffset,
+        segments,
+        material,
+        heights: this.heights
+      })
+    );
   }
 
   private addCobblestones(x: number, z: number, width: number, depth: number): void {
@@ -349,7 +316,7 @@ export class StarterTown extends WorldAsset {
   }
 
   private addTrainingYard(x: number, z: number): void {
-    this.addPatch(x, z, 20, 12, 0.09, this.roadMaterial, 4);
+    this.addPatch("training-yard-ground", x, z, 20, 12, 0.09, this.roadMaterial, 4);
 
     for (let i = 0; i < 3; i += 1) {
       const px = x - 6 + i * 6;

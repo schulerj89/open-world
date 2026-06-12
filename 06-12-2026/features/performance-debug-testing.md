@@ -221,3 +221,14 @@ A visible in-app browser check on `127.0.0.1:4208` verified the `TownNpcAsset` e
 - A 1.6 second guide-view screenshot comparison changed by `235,560` bytes, confirming visible animation still updates after moving NPC idle and building window glow into asset `update()` hooks.
 - No browser console warnings or errors were captured.
 - This in-app browser run also remained RAF-throttled around `1 FPS` with low render submit time (`render 3.2 ms`), so it verifies the NPC asset/collision/update path and diagnostics but not final 60 FPS performance.
+
+## Ground Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownGroundAsset` extraction.
+
+- Town spawn showed `Collision 0 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`, confirming walkable ground patches did not add blockers and existing recursive town collider counts stayed stable.
+- Render debug reported about `58 calls / 106,176 estimated tris` in the town spawn view after the ground patch extraction.
+- WebGPU still reported adapter ready, core mode, `bgra8unorm`, `19` features, `16384px texture`, and `48` sampled textures.
+- A 1.5 second town-ground-view screenshot comparison changed by `235,135` bytes, confirming visible town animation still updates while ground patches render through child assets.
+- No browser console warnings or errors were captured.
+- This in-app browser run remained RAF-throttled around `1 FPS` with low render submit time (`render 4.3 ms`), so it verifies the ground asset/render path and diagnostics but not final 60 FPS performance.
