@@ -18,7 +18,8 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 - Fences use sampled circle colliders along the rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
-- Slimes continue to use enemy circle colliders in the core collision pass.
+- Slimes now use `EnemyAsset` ownership: each enemy owns its combat state, mesh, spawn point, reset behavior, visual pulse, and circle collider.
+- The combat debug room is a separate non-town `WorldAsset` collision sandbox with wall, pillar, dummy, and arena-enemy blockers.
 
 ## Debug Support
 

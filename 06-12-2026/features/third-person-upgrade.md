@@ -14,8 +14,10 @@
   - Outfit variant.
 - Added visible quick tools:
   - Debug toggle.
+  - Warp to arena.
   - Warp to town.
   - Warp to slimes.
+  - Coordinate X/Z warp.
   - Debug equip swap.
   - Collision probe.
   - Return to menu.
@@ -31,6 +33,7 @@
 
 - `T`: toggle debug.
 - `Space` or `J`: jump.
+- `5`: warp to the combat debug arena.
 - `7`: warp to town.
 - `8`: warp near slimes.
 - `9`: equip debug outfit.
@@ -38,6 +41,8 @@
 - `M`: return to menu.
 
 The same actions also have visible buttons in the top-right quick tool bar during gameplay.
+
+Movement testing should verify X/Z movement, yaw/pitch look, and jump Y/grounded state in both the town and the arena. The coordinate warp controls exist so specific collision and combat positions can be revisited without walking across the map.
 
 ## Camera
 
@@ -66,6 +71,7 @@ Player movement now resolves simple circle collisions against:
 
 - starter-town cottages, fences, posts, market stalls, statue base, NPCs, and props,
 - live meadow slimes,
+- the combat debug room's walls, pillars, dummy blocker, and arena slime,
 - streamed tree trunks from visible terrain chunks.
 
 The debug HUD reports recent collision pushes and visible tree blocker count. A new `0 Collide` quick tool places the player against a known cottage blocker for fast verification.

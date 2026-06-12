@@ -22,6 +22,10 @@ The active player collision pass still resolves town, streamed terrain, and enem
 
 ## Follow-Up
 
-Future assets should inherit from `WorldAsset` when they bundle meshes and blockers together. Enemy groups are the next likely candidate once enemies move beyond the starter slime actors.
+Future assets should inherit from `WorldAsset` when they bundle meshes and blockers together.
 
-The player collision pass now uses the detailed resolver for `StarterTown`, streamed tree chunks, and inline enemy blockers. Enemies are still not full `WorldAsset` instances yet, but their temporary collider metadata now carries the enemy name so debug output is consistent.
+Enemies now use `EnemyAsset extends WorldAsset`. The enemy asset owns the combat state, slime mesh, spawn point, circle collider, reset behavior, terrain sync, health scaling, and bounce/hit-pulse visual update. Its collider stays at the logical spawn point while short hit recoil is visual-only, which keeps collision stable during squash/stretch feedback.
+
+`CombatDebugRoom` also extends `WorldAsset`. It owns sampled wall colliders, pillar colliders, and a dummy prop collider so isolated collision tests can run outside the town.
+
+The player collision pass now uses the detailed resolver for streamed tree chunks, `StarterTown`, `CombatDebugRoom`, and live `EnemyAsset` instances. This keeps debug output consistent while preserving separate tree/town/enemy blocker counts in the HUD.

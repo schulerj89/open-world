@@ -11,8 +11,8 @@ export class WorldAsset extends THREE.Group {
     this.name = name;
   }
 
-  addCircleCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"]): void {
-    this.colliders.push({ x, z, radius, kind, owner: this.name });
+  addCircleCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"], owner = this.name): void {
+    this.colliders.push({ x, z, radius, kind, owner });
   }
 
   resolveCollision(position: { x: number; z: number }, actorRadius: number): number {

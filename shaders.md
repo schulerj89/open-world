@@ -14,9 +14,9 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 ### Starter Town, Character, And Enemy Surface Shaders
 
-- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
+- Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/CombatDebugRoom.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
 - Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
-- Inputs: higher-segment town prop geometry, procedural town textures, terrain-conforming ground patch geometry, instanced pavers/trim/roof ridges/ground detail, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
+- Inputs: higher-segment town prop geometry, procedural town textures, terrain-conforming ground patch geometry, debug-room floor/wall/pillar/dummy geometry, instanced pavers/trim/roof ridges/ground detail, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
 - Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
 
 These props intentionally use the same renderer-generated shader path as the rest of the world. The goal for this pass is stable WebGPU/WebGL compatibility and 60 FPS while the gameplay loop takes shape.
@@ -24,6 +24,8 @@ These props intentionally use the same renderer-generated shader path as the res
 The June 12 town polish pass keeps custom visual motion in object transforms instead of raw shader code: tutorial markers bob and rotate, window glows pulse through scale, NPCs idle through yaw/height offsets, and attack/hit feedback uses player/enemy transform pulses. This keeps the WebGPU path on Three's renderer-native material shaders while still giving visible motion.
 
 The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, road, wall, roof, and wood surfaces. These still flow through Three's material shader compilation path; they are not custom GLSL/WGSL shaders. Contact shadows use transparent `MeshBasicMaterial` circles as cheap blob shadows, intentionally avoiding renderer shadow maps. Terrain-conforming plaza and road patches are generated as custom `BufferGeometry` on the CPU, then rendered through the same Lambert material shader path.
+
+`CombatDebugRoom` uses the same renderer-native shader path: Lambert-lit floor, walls, pillars, spawn rings, and dummy geometry. The room is intentionally procedural and does not require web assets. Combat-room motion remains CPU transform animation for the player, slime, hit pulse, and selection ring; WebGPU data is used for diagnostics rather than direct WGSL/device-level control.
 
 ### Terrain Surface Shader
 
@@ -70,6 +72,7 @@ Instanced grass and tree meshes now disable frustum culling and recompute bounds
 - The adaptive budget lowers horizon radius, density, and resolution scale when frame time rises.
 - The debug HUD shows live chunks, queued chunks, LOD rings, memory estimate, and current horizon.
 - The debug HUD also shows WebGPU adapter status, core/compatibility signal, preferred canvas format, max 2D texture dimension, adapter metadata when exposed, feature count, bind group limit, sampled texture limit, max buffer size, max storage-buffer binding size, and max vertex attributes.
+- The combat debug room uses those same WebGPU HUD fields during QA: adapter ready/core/format, feature and limit readback, render estimates, and frame timing are captured while testing movement, collision, targeting, and strikes.
 
 As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect `navigator.gpu`, request an adapter, read features and limits, then show the actual browser path in debug.
 

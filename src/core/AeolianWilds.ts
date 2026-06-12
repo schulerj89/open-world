@@ -2,13 +2,14 @@ import * as THREE from "three";
 import { AmbientSound } from "../audio/AmbientSound";
 import { defaultSettings, type QualitySettings } from "../config/QualitySettings";
 import { createCharacter, healCharacter, type CharacterDraft, type PlayerCharacter } from "../game/Character.js";
-import { createBeginnerEnemy, strikeEnemy, type EnemyState } from "../game/CombatSystem.js";
+import { strikeEnemy } from "../game/CombatSystem.js";
 import { resolvePerformanceSettings, type PerformancePresetKey } from "../game/PerformancePresets.js";
 import { createTutorialQuest, getTutorialInstruction, recordTutorialKill, type TutorialQuestState } from "../game/QuestSystem.js";
 import { createRenderer, configureRenderer, type WebGpuDebugInfo } from "../render/RendererFactory";
 import { Overlay } from "../ui/Overlay";
-import { createMeadowSlimeModel } from "../world/CreatureModels.js";
-import { resolveCircleCollisionDetailed, type CollisionHit } from "../world/Collision.js";
+import type { CollisionHit } from "../world/Collision.js";
+import { CombatDebugRoom } from "../world/CombatDebugRoom.js";
+import { EnemyAsset } from "../world/EnemyAsset.js";
 import { createHumanoidModel } from "../world/HumanoidModel.js";
 import { createSky } from "../world/Sky";
 import { StarterTown } from "../world/StarterTown.js";
@@ -19,15 +20,6 @@ import { PerformanceMonitor } from "./PerformanceMonitor";
 import { ThirdPersonController } from "./ThirdPersonController";
 
 type Mode = "title" | "playing" | "settings";
-
-type EnemyActor = {
-  enemy: EnemyState;
-  mesh: THREE.Group;
-  spawn: {
-    x: number;
-    z: number;
-  };
-};
 
 type FloatingLabel = {
   sprite: THREE.Sprite;
@@ -77,6 +69,7 @@ export class AeolianWilds {
   private controls?: InputController;
   private player: ThirdPersonController;
   private town?: StarterTown;
+  private debugRoom?: CombatDebugRoom;
   private previewModel?: THREE.Group;
   private playerRightArm?: THREE.Object3D;
   private playerWeapon?: THREE.Object3D;
@@ -89,7 +82,7 @@ export class AeolianWilds {
   };
   private character: PlayerCharacter = createCharacter({ name: "Rowan", classKey: "sentinel" });
   private quest: TutorialQuestState = createTutorialQuest();
-  private readonly enemies: EnemyActor[] = [];
+  private readonly enemies: EnemyAsset[] = [];
   private readonly enemyHitUntil = new Map<string, number>();
   private selectedEnemyId = "";
   private playerAttackStarted = 0;
@@ -124,6 +117,7 @@ export class AeolianWilds {
       onToggleDebug: () => this.toggleDebug(),
       onBackToMenu: () => this.returnToMenu(),
       onDebugAction: (action) => this.runDebugAction(action),
+      onCoordinateWarp: (x, z) => this.warpToCoordinates(x, z),
       onHotbarAction: (slot) => {
         if (slot === "1") {
           this.attackSelectedEnemy();
@@ -157,6 +151,8 @@ export class AeolianWilds {
     this.scene.add(this.selectionRing);
     this.town = new StarterTown(this.streamer.terrain);
     this.scene.add(this.town.group);
+    this.debugRoom = new CombatDebugRoom(this.streamer.terrain);
+    this.scene.add(this.debugRoom);
     this.spawnEnemies();
 
     const info = await createRenderer(this.overlay.canvas, this.settings);
@@ -364,24 +360,23 @@ export class AeolianWilds {
     }
 
     this.town.enemySpawns.forEach((spawn, index) => {
-      const mesh = createMeadowSlimeModel();
-      mesh.name = `enemy-meadow-slime-${index}`;
-      mesh.position.set(spawn.x, this.streamer.terrain.getHeight(spawn.x, spawn.z), spawn.z);
-      this.scene.add(mesh);
-      this.enemies.push({
-        enemy: createBeginnerEnemy(index),
-        mesh,
-        spawn
-      });
+      const enemy = new EnemyAsset(index, spawn, this.streamer.terrain);
+      this.scene.add(enemy);
+      this.enemies.push(enemy);
     });
+
+    if (this.debugRoom) {
+      const enemy = new EnemyAsset(this.enemies.length, this.debugRoom.enemySpawn, this.streamer.terrain);
+      this.scene.add(enemy);
+      this.enemies.push(enemy);
+    }
   }
 
   private resetEnemies(): void {
     this.enemyHitUntil.clear();
     this.enemies.forEach((actor, index) => {
-      actor.enemy = createBeginnerEnemy(index);
-      actor.mesh.visible = true;
-      actor.mesh.scale.setScalar(1);
+      actor.reset(index);
+      actor.syncToTerrain(this.streamer.terrain);
     });
   }
 
@@ -401,6 +396,10 @@ export class AeolianWilds {
 
     if (actions.resetEncounter) {
       this.runDebugAction("reset");
+    }
+
+    if (actions.warpArena) {
+      this.runDebugAction("arena");
     }
 
     if (actions.warpSlimes) {
@@ -447,16 +446,26 @@ export class AeolianWilds {
 
   private toggleDebug(): void {
     const visible = this.overlay.toggleDebug();
-    this.lastMessage = visible ? "Debug panel enabled. Use 7 town, 8 slimes, 9 equip, M menu." : "Debug panel hidden.";
+    this.lastMessage = visible ? "Debug panel enabled. Use 5 arena, 7 town, 8 slimes, 9 equip, M menu." : "Debug panel hidden.";
   }
 
-  private runDebugAction(action: "reset" | "town" | "slimes" | "equip" | "collide"): void {
+  private runDebugAction(action: "reset" | "arena" | "town" | "slimes" | "equip" | "collide"): void {
     if (action === "reset") {
       this.quest = createTutorialQuest();
       this.selectedEnemyId = "";
       this.enemyHitUntil.clear();
       this.resetEnemies();
       this.lastMessage = "Debug reset: quest and meadow slimes restored.";
+    } else if (action === "arena" && this.debugRoom) {
+      const spawn = this.debugRoom.playerSpawn;
+      this.player.teleportTo(spawn.x, spawn.z, this.streamer.terrain, spawn.yaw, this.playerAvatar);
+      const arenaEnemy = this.enemies.find(
+        (actor) =>
+          actor.enemy.alive &&
+          Math.hypot(actor.spawn.x - this.debugRoom!.enemySpawn.x, actor.spawn.z - this.debugRoom!.enemySpawn.z) < 0.1
+      );
+      this.selectedEnemyId = arenaEnemy?.enemy.id ?? "";
+      this.lastMessage = "Debug arena: isolated combat and collision sandbox.";
     } else if (action === "town" && this.town) {
       this.player.teleportTo(this.town.playerSpawn.x, this.town.playerSpawn.z, this.streamer.terrain, this.town.playerSpawn.yaw, this.playerAvatar);
       this.lastMessage = "Debug warp: returned to Briar Glen.";
@@ -477,6 +486,15 @@ export class AeolianWilds {
       this.player.teleportTo(-25.2, -16, this.streamer.terrain, Math.PI / 2, this.playerAvatar);
       this.lastMessage = "Debug collision: placed against a cottage blocker.";
     }
+  }
+
+  private warpToCoordinates(x: number, z: number): void {
+    if (this.mode !== "playing") {
+      return;
+    }
+
+    this.player.teleportTo(x, z, this.streamer.terrain, 0, this.playerAvatar);
+    this.lastMessage = `Debug coordinate warp: X ${x.toFixed(1)} / Z ${z.toFixed(1)}.`;
   }
 
   private selectNearestEnemy(): void {
@@ -550,34 +568,16 @@ export class AeolianWilds {
       this.lastMessage = `Defeated ${actor.enemy.name}. +${result.goldAwarded} gold.`;
       this.selectedEnemyId = "";
     } else {
-      const hpPercent = actor.enemy.hp / actor.enemy.maxHp;
-      actor.mesh.scale.setScalar(0.75 + hpPercent * 0.25);
+      actor.applyHealthScale();
       this.lastMessage = `Strike hit ${actor.enemy.name} for ${result.damage}.`;
     }
   }
 
   private updateEnemies(elapsed: number): void {
     this.enemies.forEach((actor, index) => {
-      const height = this.streamer.terrain.getHeight(actor.spawn.x, actor.spawn.z);
       const selected = actor.enemy.id === this.selectedEnemyId;
-      const bounce = Math.sin(elapsed * 3.2 + index * 0.9);
-      const hpScale = actor.enemy.alive ? 0.75 + (actor.enemy.hp / actor.enemy.maxHp) * 0.25 : 0.75;
       const hitRemaining = Math.max(0, (this.enemyHitUntil.get(actor.enemy.id) ?? 0) - elapsed);
-      const hitPulse = hitRemaining > 0 ? Math.sin((1 - hitRemaining / 0.32) * Math.PI) : 0;
-      actor.mesh.position.set(
-        actor.spawn.x + hitPulse * Math.sin(elapsed * 34 + index) * 0.22,
-        height + 0.12 + Math.abs(bounce) * 0.22 + hitPulse * 0.34,
-        actor.spawn.z + hitPulse * Math.cos(elapsed * 31 + index) * 0.22
-      );
-      actor.mesh.scale.set(
-        hpScale * (1.04 - Math.abs(bounce) * 0.05 + hitPulse * 0.18),
-        hpScale * (0.95 + Math.abs(bounce) * 0.12 - hitPulse * 0.1),
-        hpScale * (1 + hitPulse * 0.12)
-      );
-      actor.mesh.rotation.y += 0.018 + index * 0.003;
-      if (!actor.enemy.alive && hitRemaining <= 0) {
-        actor.mesh.visible = false;
-      }
+      const { height } = actor.updateVisual(elapsed, index, this.streamer.terrain, hitRemaining);
       if (selected) {
         this.selectionRing.visible = true;
         this.selectionRing.position.set(actor.spawn.x, height + 0.12, actor.spawn.z);
@@ -588,7 +588,7 @@ export class AeolianWilds {
     }
   }
 
-  private getSelectedEnemy(): EnemyActor | undefined {
+  private getSelectedEnemy(): EnemyAsset | undefined {
     return this.enemies.find((actor) => actor.enemy.id === this.selectedEnemyId && actor.enemy.alive);
   }
 
@@ -724,21 +724,20 @@ export class AeolianWilds {
       lastHit = townResult.lastHit ?? lastHit;
     }
 
+    if (this.debugRoom) {
+      const roomResult = this.debugRoom.resolveCollisionDetailed(position, actorRadius);
+      hits += roomResult.hits;
+      lastHit = roomResult.lastHit ?? lastHit;
+    }
+
     for (const actor of this.enemies) {
       if (!actor.enemy.alive) {
         continue;
       }
 
-      const hit = resolveCircleCollisionDetailed(
-        position,
-        { x: actor.spawn.x, z: actor.spawn.z, radius: 1.75, kind: "enemy", owner: actor.enemy.name },
-        actorRadius,
-        actor.enemy.name
-      );
-      if (hit) {
-        hits += 1;
-        lastHit = hit;
-      }
+      const enemyResult = actor.resolveCollisionDetailed(position, actorRadius);
+      hits += enemyResult.hits;
+      lastHit = enemyResult.lastHit ?? lastHit;
     }
 
     if (hits > 0) {

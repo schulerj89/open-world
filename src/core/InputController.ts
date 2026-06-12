@@ -21,6 +21,7 @@ export type InputActions = {
   slot2: boolean;
   toggleDebug: boolean;
   resetEncounter: boolean;
+  warpArena: boolean;
   warpTown: boolean;
   warpSlimes: boolean;
   equipDebug: boolean;
@@ -85,6 +86,7 @@ export class InputController {
       slot2: this.actions.has("slot2"),
       toggleDebug: this.actions.has("toggleDebug"),
       resetEncounter: this.actions.has("resetEncounter"),
+      warpArena: this.actions.has("warpArena"),
       warpTown: this.actions.has("warpTown"),
       warpSlimes: this.actions.has("warpSlimes"),
       equipDebug: this.actions.has("equipDebug"),
@@ -234,6 +236,9 @@ export class InputController {
       case "Digit6":
         this.actions.add("resetEncounter");
         break;
+      case "Digit5":
+        this.actions.add("warpArena");
+        break;
       case "Digit7":
         this.actions.add("warpTown");
         break;
@@ -296,6 +301,8 @@ export class InputController {
         return "Digit1";
       case "2":
         return "Digit2";
+      case "5":
+        return "Digit5";
       case "7":
         return "Digit7";
       case "6":
@@ -340,6 +347,7 @@ export class InputController {
       "Digit1",
       "Digit2",
       "KeyT",
+      "Digit5",
       "Digit6",
       "Digit7",
       "Digit8",

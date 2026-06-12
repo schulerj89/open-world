@@ -33,3 +33,13 @@ Reset behavior:
 - Respawns all meadow slimes.
 - Clears the selected target and active hit pulses.
 - Keeps the current character, HP, and gold intact so combat rewards can still be inspected.
+
+## Combat Debug Room
+
+Added an isolated collision and fighting sandbox outside Briar Glen.
+
+- `5 Arena` warps the player to the debug room near `X 176 / Z -174`.
+- The room center is around `X 182 / Z -180`.
+- A dedicated arena meadow slime spawns around `X 188 / Z -184` and is selected on arena warp when alive.
+- The top-right debug controls include numeric X/Z inputs and `Warp` so coordinate-specific collision and combat cases can be reproduced quickly.
+- The room has its own walls, pillars, dummy blocker, spawn rings, and live slime collider. It is a debug sandbox for movement, looking, jumping, collision, targeting, and fighting iteration, not a shipped Briar Glen location.

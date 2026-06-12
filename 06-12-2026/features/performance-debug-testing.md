@@ -163,3 +163,20 @@ A follow-up visible Chrome pass tested production preview on `127.0.0.1:4207`.
 - The fresh reload after that fix drained to queue `0`; final sample showed `30 FPS`, `RAF 33.3 ms`, page `visible`, `21` live chunks, about `524 calls / 100,664 estimated tris`, render submit around `1.8 ms`, and CPU work around `sim 0.1 / stream 0.0 / hud 0.0 ms`.
 - WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
 - The Three `renderer.setAnimationLoop` experiment was not kept because the visible Chrome/WebGPU QA path regressed to about `1 FPS` / `RAF ~1017 ms`.
+
+## Combat Debug Room Visible Audit
+
+A follow-up in-app browser pass tested the debug arena on `127.0.0.1:4208`.
+
+- `5 Arena` warped the player to the isolated room at about `X 176.0 / Y 22.3 / Z -174.0` and selected `Meadow Slime 4`.
+- Live blocker counts showed `9 tree / 81 town / 4 enemy blockers`, confirming the arena slime is part of the enemy-collider path.
+- Movement testing changed X/Z from `176.0 / -174.0` to `177.1 / -174.0`.
+- Keyboard look changed yaw/pitch from `-45.8 / 16.0` to `-40.5 / 12.7`.
+- Jump testing changed Y from `22.4` to `22.8` and changed grounded from `yes` to `no`.
+- Coordinate warp to `X 182 / Z -174` hit the arena dummy and reported `Last hit prop / debug-combat-dummy / push 1.92 / at X 182.0 Z -174.0`.
+- Coordinate warp to `X 188 / Z -184` hit the arena slime and reported `Last hit enemy / Meadow Slime 4 / push 2.47 / at X 188.0 Z -184.0`.
+- Pressing `1 Strike` near the arena slime reduced it from `52 / 52 HP` to `28 / 52 HP`.
+- Strike animation/feedback changed the canvas screenshot by `156,308` bytes immediately after the hit.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
+- No browser console warnings or errors were captured during the arena pass.
+- This in-app browser session was RAF-throttled despite low render submit time: final sample showed `1 FPS`, frame `807.6 ms`, queue `0`, about `316 calls / 96,476 estimated tris`, and render submit around `3.3 ms`. One post-strike sample briefly showed `RAF 16.7 ms`, but the final warmed cadence returned to about `1000 ms`, so this run verifies behavior and diagnostics, not the 60 FPS target.

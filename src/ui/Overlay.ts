@@ -73,7 +73,8 @@ type OverlayEvents = {
   onPerformanceChange: (preset: PerformancePresetKey, memoryBudgetMb: number) => void;
   onToggleDebug: () => void;
   onBackToMenu: () => void;
-  onDebugAction: (action: "reset" | "town" | "slimes" | "equip" | "collide") => void;
+  onDebugAction: (action: "reset" | "arena" | "town" | "slimes" | "equip" | "collide") => void;
+  onCoordinateWarp: (x: number, z: number) => void;
   onHotbarAction: (slot: "1" | "2") => void;
 };
 
@@ -130,10 +131,18 @@ export class Overlay {
     this.root.querySelector<HTMLButtonElement>("[data-toggle-debug]")?.addEventListener("click", events.onToggleDebug);
     this.root.querySelector<HTMLButtonElement>("[data-back-menu]")?.addEventListener("click", events.onBackToMenu);
     this.root.querySelector<HTMLButtonElement>("[data-reset-debug]")?.addEventListener("click", () => events.onDebugAction("reset"));
+    this.root.querySelector<HTMLButtonElement>("[data-warp-arena]")?.addEventListener("click", () => events.onDebugAction("arena"));
     this.root.querySelector<HTMLButtonElement>("[data-warp-town]")?.addEventListener("click", () => events.onDebugAction("town"));
     this.root.querySelector<HTMLButtonElement>("[data-warp-slimes]")?.addEventListener("click", () => events.onDebugAction("slimes"));
     this.root.querySelector<HTMLButtonElement>("[data-equip-debug]")?.addEventListener("click", () => events.onDebugAction("equip"));
     this.root.querySelector<HTMLButtonElement>("[data-collision-debug]")?.addEventListener("click", () => events.onDebugAction("collide"));
+    this.root.querySelector<HTMLButtonElement>("[data-coordinate-warp]")?.addEventListener("click", () => {
+      const x = Number(this.root.querySelector<HTMLInputElement>("[data-coordinate-x]")?.value ?? "0");
+      const z = Number(this.root.querySelector<HTMLInputElement>("[data-coordinate-z]")?.value ?? "0");
+      if (Number.isFinite(x) && Number.isFinite(z)) {
+        events.onCoordinateWarp(x, z);
+      }
+    });
     this.root.addEventListener("click", (event) => {
       const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>("[data-hotbar-slot]");
       const slot = button?.dataset.hotbarSlot;
@@ -390,11 +399,15 @@ export class Overlay {
       <div class="game-hud" data-game-hud></div>
       <div class="quick-tools" data-quick-tools hidden>
         <button type="button" data-toggle-debug>Debug</button>
+        <button type="button" data-warp-arena>5 Arena</button>
         <button type="button" data-reset-debug>6 Reset</button>
         <button type="button" data-warp-town>7 Town</button>
         <button type="button" data-warp-slimes>8 Slimes</button>
         <button type="button" data-equip-debug>9 Equip</button>
         <button type="button" data-collision-debug>0 Collide</button>
+        <label class="coord-field">X <input data-coordinate-x type="number" value="182" step="1" /></label>
+        <label class="coord-field">Z <input data-coordinate-z type="number" value="-180" step="1" /></label>
+        <button type="button" data-coordinate-warp>Warp</button>
         <button type="button" data-back-menu>Menu</button>
       </div>
       <div class="hud" data-hud></div>

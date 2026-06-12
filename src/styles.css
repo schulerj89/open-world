@@ -442,6 +442,33 @@ h1 {
   cursor: pointer;
 }
 
+.coord-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid rgb(246 240 223 / 0.18);
+  border-radius: 8px;
+  background: rgb(8 18 15 / 0.86);
+  color: #fff8e7;
+  padding: 0 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.coord-field input {
+  width: 72px;
+  min-width: 0;
+  border: 1px solid rgb(255 248 231 / 0.2);
+  border-radius: 6px;
+  background: rgb(255 248 231 / 0.08);
+  color: #fff8e7;
+  padding: 4px 5px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
 .metric-row {
   display: flex;
   justify-content: space-between;
