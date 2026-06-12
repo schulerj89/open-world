@@ -290,6 +290,7 @@ export class AeolianWilds {
           collisionHits: this.lastCollisionHits,
           collisionDetail: this.lastCollisionDetail,
           townColliders: this.town?.colliders.length ?? 0,
+          roomColliders: this.debugRoom?.colliders.length ?? 0,
           enemyColliders: this.enemies.filter((actor) => actor.enemy.alive).length
         },
         this.gpuDebug,

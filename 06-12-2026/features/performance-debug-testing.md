@@ -180,3 +180,21 @@ A follow-up in-app browser pass tested the debug arena on `127.0.0.1:4208`.
 - WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
 - No browser console warnings or errors were captured during the arena pass.
 - This in-app browser session was RAF-throttled despite low render submit time: final sample showed `1 FPS`, frame `807.6 ms`, queue `0`, about `316 calls / 96,476 estimated tris`, and render submit around `3.3 ms`. One post-strike sample briefly showed `RAF 16.7 ms`, but the final warmed cadence returned to about `1000 ms`, so this run verifies behavior and diagnostics, not the 60 FPS target.
+
+## Collider Owner Label Follow-Up
+
+The next collision-diagnostics slice adds object-level owner labels for town blockers and a separate room blocker count in the HUD.
+
+- The collision row now reports tree, town, room, and enemy blocker groups.
+- Town collisions no longer collapse to only `starter-town`; colliders identify specific objects such as cottages, the tutorial guide NPC, market stalls, props, lamps, and fence runs.
+- This is intended to make `0 Collide`, arena coordinate warp, and future building/NPC collision probes easier to audit in the visible browser.
+
+A visible in-app browser check on `127.0.0.1:4208` verified the diagnostic change:
+
+- `0 Collide` reported `Collision 1 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`.
+- The town collision source reported `Last hit building / cottage--30--16 / push 2.06 / at X -30.0 Z -16.0`.
+- `5 Arena` plus coordinate warp to `X 182 / Z -174` reported `Collision 1 hits / 12 tree / 81 town / 55 room / 4 enemy blockers`.
+- The room collision source reported `Last hit prop / debug-combat-dummy / push 1.92 / at X 182.0 Z -174.0`.
+- WebGPU still reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
+- No browser console warnings or errors were captured.
+- The in-app browser session remained RAF-throttled around `1 FPS` with low render submit time, so this pass verifies collision diagnostics and WebGPU readback, not final 60 FPS performance.

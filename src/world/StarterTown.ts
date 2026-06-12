@@ -95,7 +95,7 @@ export class StarterTown extends WorldAsset {
     const width = 8 * scale;
     const depth = 7 * scale;
     const wallHeight = 5.8 * scale;
-    this.addCollider(x, z, 4.8 * scale, "building");
+    this.addCollider(x, z, 4.8 * scale, "building", `cottage-${Math.round(x)}-${Math.round(z)}`);
     const base = new THREE.Mesh(new THREE.BoxGeometry(width, wallHeight, depth, 3, 4, 3), this.cottageMaterial);
     base.position.set(x, this.getHeight(x, z) + wallHeight * 0.5, z);
     base.rotation.y = yaw;
@@ -421,7 +421,7 @@ export class StarterTown extends WorldAsset {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.4, 12), this.roofMaterial);
       post.position.set(px, this.getHeight(px, z) + 1.7, z);
       this.group.add(post);
-      this.addCollider(px, z, 0.8, "prop");
+      this.addCollider(px, z, 0.8, "prop", `training-post-${i + 1}`);
     }
   }
 
@@ -432,7 +432,7 @@ export class StarterTown extends WorldAsset {
     const statueBase = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.3, 1.2, 16), this.stoneMaterial);
     statueBase.position.set(0, this.getHeight(0, 0) + 0.7, 0);
     this.group.add(statueBase);
-    this.addCollider(0, 0, 2.3, "prop");
+    this.addCollider(0, 0, 2.3, "prop", "plaza-statue-base");
     const crystal = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 2), this.markerMaterial);
     crystal.position.set(0, this.getHeight(0, 0) + 2.35, 0);
     this.group.add(crystal);
@@ -444,7 +444,7 @@ export class StarterTown extends WorldAsset {
       stall.position.set(x + offset, this.getHeight(x + offset, z) + 0.65, z);
       this.group.add(stall);
       this.addWorldShadow(x + offset, z, 2.25, 1.5, 0);
-      this.addCollider(x + offset, z, 2.0, "prop");
+      this.addCollider(x + offset, z, 2.0, "prop", `market-stall-${index + 1}`);
       const awning = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.1, 4), index % 2 === 0 ? this.trimMaterial : this.markerMaterial);
       awning.position.set(x + offset, this.getHeight(x + offset, z) + 2.1, z);
       awning.rotation.y = Math.PI * 0.25;
@@ -464,13 +464,13 @@ export class StarterTown extends WorldAsset {
       [35, -8, 0.7],
       [-44, 8, 1.1],
       [6, -20, -0.8]
-    ].forEach(([x, z, yaw]) => {
+    ].forEach(([x, z, yaw], index) => {
       const crate = new THREE.Mesh(crateGeometry, this.woodMaterial);
       crate.position.set(x, this.getHeight(x, z) + 0.55, z);
       crate.rotation.y = yaw;
       this.group.add(crate);
       this.addWorldShadow(x, z, 0.9, 0.72, yaw);
-      this.addCollider(x, z, 0.85, "prop");
+      this.addCollider(x, z, 0.85, "prop", `crate-${index + 1}`);
     });
 
     [
@@ -478,13 +478,13 @@ export class StarterTown extends WorldAsset {
       [16, 14],
       [-24, 28],
       [38, 12]
-    ].forEach(([x, z]) => {
+    ].forEach(([x, z], index) => {
       const barrel = new THREE.Mesh(barrelGeometry, this.woodMaterial);
       barrel.position.set(x, this.getHeight(x, z) + 0.6, z);
       barrel.rotation.z = 0.04;
       this.group.add(barrel);
       this.addWorldShadow(x, z, 0.68, 0.56, 0);
-      this.addCollider(x, z, 0.7, "prop");
+      this.addCollider(x, z, 0.7, "prop", `barrel-${index + 1}`);
     });
 
     [
@@ -507,13 +507,13 @@ export class StarterTown extends WorldAsset {
       [-23, 43, 0.2],
       [-14, 46, -0.3],
       [74, -22, 0.6]
-    ].forEach(([x, z, yaw]) => {
+    ].forEach(([x, z, yaw], index) => {
       const hay = new THREE.Mesh(hayGeometry, this.hayMaterial);
       hay.position.set(x, this.getHeight(x, z) + 0.4, z);
       hay.rotation.y = yaw;
       this.group.add(hay);
       this.addWorldShadow(x, z, 1.45, 0.9, yaw);
-      this.addCollider(x, z, 1.25, "prop");
+      this.addCollider(x, z, 1.25, "prop", `hay-bale-${index + 1}`);
     });
   }
 
@@ -533,7 +533,7 @@ export class StarterTown extends WorldAsset {
       model.userData.baseYaw = npc.yaw;
       model.userData.phase = index * 1.7;
       this.group.add(model);
-      this.addCollider(npc.x, npc.z, 0.95, "npc");
+      this.addCollider(npc.x, npc.z, 0.95, "npc", npc.guide ? "tutorial-guide-npc" : `town-npc-${index + 1}`);
     });
   }
 
@@ -545,11 +545,11 @@ export class StarterTown extends WorldAsset {
       [48, -15],
       [15, 18],
       [-15, 18]
-    ].forEach(([x, z]) => {
+    ].forEach(([x, z], index) => {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 4.2, 10), this.roofMaterial);
       post.position.set(x, this.getHeight(x, z) + 2.1, z);
       this.group.add(post);
-      this.addCollider(x, z, 0.45, "prop");
+      this.addCollider(x, z, 0.45, "prop", `lamp-post-${index + 1}`);
       const lamp = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), this.lightMaterial);
       lamp.position.set(x, this.getHeight(x, z) + 4.35, z);
       this.group.add(lamp);
@@ -587,12 +587,18 @@ export class StarterTown extends WorldAsset {
     const samples = Math.max(2, Math.ceil(length / 4));
     for (let i = 0; i <= samples; i += 1) {
       const t = i / samples;
-      this.addCollider(THREE.MathUtils.lerp(x1, x2, t), THREE.MathUtils.lerp(z1, z2, t), 0.55, "fence");
+      this.addCollider(
+        THREE.MathUtils.lerp(x1, x2, t),
+        THREE.MathUtils.lerp(z1, z2, t),
+        0.55,
+        "fence",
+        `fence-${Math.round(x1)}-${Math.round(z1)}-${Math.round(x2)}-${Math.round(z2)}`
+      );
     }
   }
 
-  private addCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"]): void {
-    this.addCircleCollider(x, z, radius, kind);
+  private addCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"], owner = this.name): void {
+    this.addCircleCollider(x, z, radius, kind, owner);
   }
 
   private addWorldShadow(x: number, z: number, scaleX: number, scaleZ: number, yaw: number): void {

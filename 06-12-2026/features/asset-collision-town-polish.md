@@ -27,9 +27,10 @@ The debug HUD now separates blocker counts:
 
 - Tree blockers from streamed terrain chunks.
 - Town blockers from `StarterTown.colliders`.
+- Room blockers from the combat debug room.
 - Enemy blockers from live enemy actors.
 
-The `0 Collide` quick tool now targets the current expanded cottage collider, and collision hit display holds long enough to be captured in browser QA.
+The `0 Collide` quick tool now targets the current expanded cottage collider, and collision hit display holds long enough to be captured in browser QA. Town blocker owner labels now identify specific collision sources such as cottages, the tutorial guide NPC, market stalls, the plaza statue, crates, barrels, hay bales, lamp posts, and fence runs.
 
 ## Second Detail Pass
 

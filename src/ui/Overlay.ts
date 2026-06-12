@@ -22,6 +22,7 @@ export type PlayerDebugState = {
   collisionHits: number;
   collisionDetail: string;
   townColliders: number;
+  roomColliders: number;
   enemyColliders: number;
 };
 
@@ -261,7 +262,7 @@ export class Overlay {
       <div class="metric-row"><span>Speed</span><span>${player.speed.toFixed(1)} u/s</span></div>
       <div class="metric-row"><span>Grounded</span><span>${player.grounded ? "yes" : "no"}</span></div>
       <div class="metric-row"><span>Pointer</span><span>${player.pointerLocked ? "locked" : player.dragLook ? "drag" : "free"}</span></div>
-      <div class="metric-row" data-debug-collision><span>Collision</span><span>${player.collisionHits} hits / ${stats.colliders} tree / ${player.townColliders} town / ${player.enemyColliders} enemy blockers</span></div>
+      <div class="metric-row" data-debug-collision><span>Collision</span><span>${player.collisionHits} hits / ${stats.colliders} tree / ${player.townColliders} town / ${player.roomColliders} room / ${player.enemyColliders} enemy blockers</span></div>
       <div class="metric-row" data-debug-collision-detail><span>Last hit</span><span>${player.collisionDetail}</span></div>
       <div class="metric-row" data-debug-trees><span>Trees</span><span>${stats.trunks} trunks / ${stats.coniferCrowns * 3 + stats.broadleafCrowns} crown parts</span></div>
       <div class="metric-row"><span>Grass cards</span><span>${stats.grassInstances}</span></div>
