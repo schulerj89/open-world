@@ -124,3 +124,16 @@ A follow-up visible Chrome pass tested production preview on `127.0.0.1:4204`.
 - Town view held `60 FPS` and `16.7 ms` at about `520 calls / 89,196 estimated tris`.
 - Collision probe held `60 FPS`, showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`, and rendered from a corrected camera-facing yaw with about `408 calls / 91,772 estimated tris`.
 - Movement/look/jump, slime strike, `6 Reset`, and `0 Collide` were smoke-tested in Chrome after the visual pass.
+
+## Terrain Ground Detail Visible Audit
+
+A follow-up visible Chrome pass tested production preview on `127.0.0.1:4205`.
+
+- Plaza and road patch geometry now conforms to terrain height instead of moving as flat planes away from the ground.
+- Near-town rocks, shrubs, and flower clumps render as batched solid ground detail around Briar Glen.
+- Balanced/default resolution scale was settled at `0.50` after an intermediate `0.52` test with the added ground detail. The first warmup sample still dipped while chunk work was queued, then settled at 60 FPS once streaming completed.
+- Final town baseline held `60 FPS`, `16.7 ms` frame time, `177` live chunks, queue `0`, and about `828 calls / 106,824 estimated tris`.
+- Combat smoke test via `8 Slimes`, `Tab`, and `1 Strike` held `60 FPS`, reduced Meadow Slime 1 to `28 / 52 HP`, and reported about `1020 calls / 107,336 estimated tris`.
+- `6 Reset` restored the quest to `0 / 2`, cleared the target, restored enemy blockers, and held `60 FPS`.
+- `0 Collide` showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`, player position `X -23.1 / Y 9.0 / Z -16.0`, yaw `90.0`, and held `60 FPS` at about `1132 calls / 106,824 estimated tris`.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`; timing showed RAF near `16.4-16.7 ms` and render submit around `2.0-3.7 ms`.

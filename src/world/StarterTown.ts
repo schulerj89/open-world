@@ -87,6 +87,7 @@ export class StarterTown extends WorldAsset {
     this.addFenceLine(86, -34, 86, 26);
     this.addFenceLine(-62, -24, -62, 30);
     this.addRoadEdgeStones();
+    this.addGroundDetailInstances();
     this.flushInstancedBoxes();
   }
 
@@ -145,11 +146,54 @@ export class StarterTown extends WorldAsset {
     material: THREE.Material,
     segments = 1
   ): void {
-    const patch = new THREE.Mesh(new THREE.PlaneGeometry(width, depth, segments, segments), material);
-    patch.position.set(x, this.getHeight(x, z) + yOffset, z);
-    patch.rotation.x = -Math.PI / 2;
+    const patch = new THREE.Mesh(this.createGroundPatchGeometry(x, z, width, depth, yOffset, segments), material);
     patch.receiveShadow = true;
     this.group.add(patch);
+  }
+
+  private createGroundPatchGeometry(
+    centerX: number,
+    centerZ: number,
+    width: number,
+    depth: number,
+    yOffset: number,
+    segments: number
+  ): THREE.BufferGeometry {
+    const columns = Math.max(1, segments);
+    const rows = Math.max(1, segments);
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    for (let row = 0; row <= rows; row += 1) {
+      const v = row / rows;
+      const localZ = (v - 0.5) * depth;
+      for (let col = 0; col <= columns; col += 1) {
+        const u = col / columns;
+        const localX = (u - 0.5) * width;
+        const worldX = centerX + localX;
+        const worldZ = centerZ + localZ;
+        positions.push(worldX, this.getHeight(worldX, worldZ) + yOffset, worldZ);
+        uvs.push(u, v);
+      }
+    }
+
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < columns; col += 1) {
+        const a = row * (columns + 1) + col;
+        const b = a + 1;
+        const c = a + columns + 1;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
   }
 
   private addCobblestones(x: number, z: number, width: number, depth: number): void {
@@ -229,6 +273,88 @@ export class StarterTown extends WorldAsset {
         this.queueBox("stone", px, this.getHeight(px, pz) + 0.18, pz, 1.15, 0.18, 0.5, (i % 5) * 0.11);
       }
     });
+  }
+
+  private addGroundDetailInstances(): void {
+    const rockGeometry = new THREE.IcosahedronGeometry(0.32, 1);
+    const shrubGeometry = new THREE.IcosahedronGeometry(0.46, 2);
+    const flowerGeometry = new THREE.IcosahedronGeometry(0.16, 1);
+    const shrubMaterial = new THREE.MeshLambertMaterial({ color: "#4f8b4e" });
+    const flowerMaterial = new THREE.MeshLambertMaterial({ color: "#e48a9a" });
+    const rockMatrices: THREE.Matrix4[] = [];
+    const shrubMatrices: THREE.Matrix4[] = [];
+    const flowerMatrices: THREE.Matrix4[] = [];
+
+    const addMatrix = (
+      target: THREE.Matrix4[],
+      x: number,
+      z: number,
+      scaleX: number,
+      scaleY: number,
+      scaleZ: number,
+      yaw: number
+    ): void => {
+      this.transformPosition.set(x, this.getHeight(x, z) + 0.18, z);
+      this.transformRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      this.transformScale.set(scaleX, scaleY, scaleZ);
+      target.push(new THREE.Matrix4().compose(this.transformPosition, this.transformRotation, this.transformScale));
+    };
+
+    for (let i = 0; i < 72; i += 1) {
+      const side = i % 4;
+      const t = (i % 18) / 17;
+      const jitter = Math.sin(i * 2.37) * 1.8;
+      const x = side < 2 ? THREE.MathUtils.lerp(-58, 72, t) : (side === 2 ? -58 : 72) + jitter;
+      const z = side < 2 ? (side === 0 ? -30 : 36) + jitter : THREE.MathUtils.lerp(-30, 36, t);
+      const scale = 0.55 + (i % 5) * 0.09;
+      addMatrix(rockMatrices, x, z, scale, 0.35 + (i % 3) * 0.08, scale * 0.8, i * 0.31);
+    }
+
+    [
+      [-46, -24],
+      [-42, 28],
+      [-30, 32],
+      [36, 30],
+      [52, 16],
+      [60, -22],
+      [76, 2],
+      [70, -18],
+      [-56, 18],
+      [-52, -12],
+      [30, -30],
+      [44, -26]
+    ].forEach(([x, z], index) => {
+      const scale = 0.9 + (index % 4) * 0.12;
+      addMatrix(shrubMatrices, x, z, scale, scale * 0.75, scale, index * 0.44);
+    });
+
+    for (let i = 0; i < 90; i += 1) {
+      const band = i % 3;
+      const t = (i % 30) / 29;
+      const x = THREE.MathUtils.lerp(-56, 78, t) + Math.sin(i * 1.9) * 1.2;
+      const z = band === 0 ? 31 + Math.cos(i) * 1.1 : band === 1 ? -27 + Math.sin(i) * 1.1 : THREE.MathUtils.lerp(-20, 24, t);
+      const finalX = band === 2 ? (i % 2 === 0 ? -59 : 78) + Math.cos(i * 1.7) * 1.4 : x;
+      addMatrix(flowerMatrices, finalX, z, 0.7, 0.55, 0.7, i * 0.17);
+    }
+
+    this.addInstancedDetail("town-ground-rocks", rockGeometry, this.darkStoneMaterial, rockMatrices);
+    this.addInstancedDetail("town-ground-shrubs", shrubGeometry, shrubMaterial, shrubMatrices);
+    this.addInstancedDetail("town-ground-flowers", flowerGeometry, flowerMaterial, flowerMatrices);
+  }
+
+  private addInstancedDetail(
+    name: string,
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    matrices: THREE.Matrix4[]
+  ): void {
+    const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
+    mesh.name = name;
+    mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    this.group.add(mesh);
   }
 
   private queueLocalBox(

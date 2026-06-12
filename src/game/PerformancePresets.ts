@@ -31,7 +31,7 @@ export const performancePresets: Record<PerformancePresetKey, PerformancePreset>
       renderDistance: 7,
       grassDensity: 0.82,
       treeDensity: 0.82,
-      resolutionScale: 0.56
+      resolutionScale: 0.5
     }
   },
   quality: {

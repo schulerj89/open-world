@@ -16,14 +16,14 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 - Code: `src/render/TextureAssets.ts`, `src/world/StarterTown.ts`, `src/world/HumanoidModel.ts`, `src/world/CreatureModels.ts`, `src/world/ContactShadow.ts`, `src/core/AeolianWilds.ts`
 - Material: `THREE.MeshStandardMaterial` and `THREE.MeshLambertMaterial`
-- Inputs: higher-segment town prop geometry, procedural town textures, instanced pavers/trim/roof ridges, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
+- Inputs: higher-segment town prop geometry, procedural town textures, terrain-conforming ground patch geometry, instanced pavers/trim/roof ridges/ground detail, procedural humanoid class meshes, procedural slime meshes, generated transforms, shared lighting, short-lived attack/hit transforms, town window glow transforms
 - Purpose: renders the third-person MMORPG starter loop without adding heavy imported assets or unique material branches.
 
 These props intentionally use the same renderer-generated shader path as the rest of the world. The goal for this pass is stable WebGPU/WebGL compatibility and 60 FPS while the gameplay loop takes shape.
 
 The June 12 town polish pass keeps custom visual motion in object transforms instead of raw shader code: tutorial markers bob and rotate, window glows pulse through scale, NPCs idle through yaw/height offsets, and attack/hit feedback uses player/enemy transform pulses. This keeps the WebGPU path on Three's renderer-native material shaders while still giving visible motion.
 
-The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, road, wall, roof, and wood surfaces. These still flow through Three's material shader compilation path; they are not custom GLSL/WGSL shaders. Contact shadows use transparent `MeshBasicMaterial` circles as cheap blob shadows, intentionally avoiding renderer shadow maps.
+The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, road, wall, roof, and wood surfaces. These still flow through Three's material shader compilation path; they are not custom GLSL/WGSL shaders. Contact shadows use transparent `MeshBasicMaterial` circles as cheap blob shadows, intentionally avoiding renderer shadow maps. Terrain-conforming plaza and road patches are generated as custom `BufferGeometry` on the CPU, then rendered through the same Lambert material shader path.
 
 ### Terrain Surface Shader
 
@@ -79,8 +79,9 @@ As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect
 - Characters, NPCs, slimes, town stone, and town trim use `MeshLambertMaterial` after visible Chrome testing showed the heavier PBR path was unnecessary for the low-poly style. Lamp bulbs and the targeting ring use `MeshBasicMaterial`; terrain and foliage continue using `MeshLambertMaterial`; textured terrain still uses Lambert lighting plus vertex colors.
 - Rivers were removed from terrain carving and chunk mesh generation. This frees per-chunk geometry and shader work for higher-poly land, town, characters, trees, and enemies.
 - WebGPU MSAA stays disabled. A visible Chrome pass on the higher-poly build showed 4x MSAA pushed the frame well under the 60 FPS target, so resolution scale and adaptive budget remain the active quality controls.
-- Default/Balanced resolution scale increased to `0.56`, High Quality increased to `0.72`, and adaptive resolution now floors at `0.32`. This improves visible sharpness before spending more geometry.
+- Default/Balanced resolution scale is currently `0.50`, High Quality is `0.72`, and adaptive resolution now floors at `0.32`. Visible Chrome testing showed `0.50` kept the sharper town readable while recovering 60 FPS after the extra terrain-conforming ground detail.
 - The debug HUD estimates draw calls and triangles from visible scene geometry when WebGPU renderer counters are zero or cumulative.
 - Tree crowns now sway through CPU-updated instanced matrices while trunks remain fixed to the terrain. This was chosen for immediate visual verification and browser compatibility.
 - Attack, hit, quest-marker, NPC idle, and window-glow animation currently run as CPU-updated object transforms. They intentionally do not use raw GLSL so the project stays on the same WebGPU-compatible material path.
+- Near-town rocks, shrubs, and flowers are now batched with `InstancedMesh`. They add visible ground detail without introducing new shader branches or a large draw-call increase.
 - The next custom shader should be a Three TSL/node-material wind path for grass and tree crowns so the CPU-side matrix update can be replaced with GPU vertex displacement. Three's WebGPU renderer can target WebGPU first and fall back to WebGL2, so raw GLSL-only `ShaderMaterial` should remain avoided for this project.
