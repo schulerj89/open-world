@@ -137,3 +137,16 @@ A follow-up visible Chrome pass tested production preview on `127.0.0.1:4205`.
 - `6 Reset` restored the quest to `0 / 2`, cleared the target, restored enemy blockers, and held `60 FPS`.
 - `0 Collide` showed `Collision 1 hits / 72 tree / 81 town / 3 enemy blockers`, player position `X -23.1 / Y 9.0 / Z -16.0`, yaw `90.0`, and held `60 FPS` at about `1132 calls / 106,824 estimated tris`.
 - WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`; timing showed RAF near `16.4-16.7 ms` and render submit around `2.0-3.7 ms`.
+
+## Character Detail And Audio Visible Audit
+
+A follow-up visible Chrome pass tested production preview on `127.0.0.1:4206`.
+
+- Character creation now shows the face side of the live preview model after a preview-only orientation fix.
+- The richer procedural humanoid model includes face, hair, gear layers, class equipment, named right arm, and named weapon parts.
+- Measured character variants are in the new `4k-8k` target band, with current variants around `5.9k-6.8k` triangles.
+- Hotbar buttons are now clickable; `1 Strike` through the hotbar reduced Meadow Slime 1 from `52 / 52` to `28 / 52 HP`.
+- Audio debug reported `running`, the current procedural track, phrase countdown, and `hit impact` immediately after the strike.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere adapter metadata, `19` features, and `16384px texture`.
+- The current default/Balanced resolution scale is `0.45` after the character-detail pass.
+- Final HUD sample showed `30 FPS`, `RAF 33.3 ms`, page `visible`, about `508 calls / 95,872 estimated tris`, and render submit around `2.8 ms`. CPU work stayed low (`sim 0.1 / stream 0.1 / hud 0.0 ms`), so this Chrome session appeared RAF-paced at 30 Hz rather than app-work limited. This does not prove the full 60 FPS goal for the new character pass; it proves render/CPU headroom was under budget in that session.

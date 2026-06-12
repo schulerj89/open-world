@@ -141,7 +141,9 @@ export class InputController {
     const code = this.normalizeKeyCode(event);
     this.pressedUntil.delete(code);
     this.setKey(code, true);
-    this.queueAction(code);
+    if (!event.repeat) {
+      this.queueAction(code);
+    }
 
     if (this.isGameKey(code)) {
       event.preventDefault();

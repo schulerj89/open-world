@@ -7,15 +7,19 @@ The title screen now has a live 3D character preview rendered in the same world 
 - Name, class, outfit, primary color, and accent color controls emit preview changes.
 - The preview uses `createHumanoidModel`, so it is the same procedural model family used for the player and NPCs.
 - The preview is visible on title/settings screens and hidden during gameplay.
+- Humanoid models now target the `4k-8k` triangle band for key characters. Current class/outfit variants measure about `5.9k-6.8k` triangles and include readable face features, hair, clothing layers, gloves, boots, accessories, and class gear.
 
 ## Combat Feedback
 
 Strike actions now create immediate feedback:
 
-- Player model swings briefly during a strike.
+- Player right arm and held weapon swing briefly during a strike, with a translucent slash trail.
 - Hit slimes recoil and squash/stretch for a short pulse.
 - Defeated slimes linger through the hit pulse before hiding.
+- Floating damage and heal numbers appear over the target/player.
 - Procedural strike and hit sounds play through `AmbientSound`.
+- Strike input has a short recovery window and ignores keyboard repeat so Web Audio nodes cannot be spammed faster than the animation.
+- Hotbar buttons now route through the same Strike/Mend actions as keyboard slots.
 
 No external SFX assets were added. The sounds are short oscillator/noise bursts layered on top of the existing procedural music and wind.
 
@@ -29,4 +33,3 @@ Reset behavior:
 - Respawns all meadow slimes.
 - Clears the selected target and active hit pulses.
 - Keeps the current character, HP, and gold intact so combat rewards can still be inspected.
-

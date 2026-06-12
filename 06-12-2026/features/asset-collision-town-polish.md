@@ -50,4 +50,4 @@ The latest pass focuses on the ground issue seen in browser QA:
 - Plaza and road patches now generate terrain-following `BufferGeometry` by sampling `StarterTown.getHeight` per vertex instead of floating as flat planes.
 - Near-town rocks, shrubs, and flower clumps are batched into three solid `InstancedMesh` groups so there is more visible ground detail without relying on alpha grass cards.
 - The extra ground clutter is decorative only; collision remains on buildings, fences, NPCs, props, trees, and live enemies to keep movement predictable.
-- Default and Balanced resolution scale were settled at `0.50` after visible Chrome testing, preserving a sharper image than the earlier `0.42` default while keeping the latest town detail pass at 60 FPS after warmup.
+- Default and Balanced resolution scale were settled at `0.50` for this town-detail checkpoint after visible Chrome testing, preserving a sharper image than the earlier `0.42` default while keeping the latest town detail pass at 60 FPS after warmup. A later character-detail checkpoint lowered the current default to `0.45` to preserve render headroom with higher-poly humanoids.

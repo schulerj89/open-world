@@ -57,6 +57,13 @@ export type FrameTimingState = {
   visibility: string;
 };
 
+export type AudioDebugState = {
+  state: string;
+  track: string;
+  trackRemaining: number;
+  lastEffect: string;
+};
+
 type OverlayEvents = {
   onStart: (draft: CharacterDraft) => void;
   onPreviewChange: (draft: CharacterDraft) => void;
@@ -66,6 +73,7 @@ type OverlayEvents = {
   onToggleDebug: () => void;
   onBackToMenu: () => void;
   onDebugAction: (action: "reset" | "town" | "slimes" | "equip" | "collide") => void;
+  onHotbarAction: (slot: "1" | "2") => void;
 };
 
 export class Overlay {
@@ -125,6 +133,13 @@ export class Overlay {
     this.root.querySelector<HTMLButtonElement>("[data-warp-slimes]")?.addEventListener("click", () => events.onDebugAction("slimes"));
     this.root.querySelector<HTMLButtonElement>("[data-equip-debug]")?.addEventListener("click", () => events.onDebugAction("equip"));
     this.root.querySelector<HTMLButtonElement>("[data-collision-debug]")?.addEventListener("click", () => events.onDebugAction("collide"));
+    this.root.addEventListener("click", (event) => {
+      const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>("[data-hotbar-slot]");
+      const slot = button?.dataset.hotbarSlot;
+      if (slot === "1" || slot === "2") {
+        events.onHotbarAction(slot);
+      }
+    });
     this.root.querySelectorAll<HTMLSelectElement>("[data-performance-control]").forEach((select) => {
       select.addEventListener("change", () => {
         const preset = this.readPresetKey();
@@ -208,7 +223,8 @@ export class Overlay {
     player: PlayerDebugState,
     gpu: WebGpuDebugInfo,
     render: RenderDebugState,
-    timing: FrameTimingState
+    timing: FrameTimingState,
+    audio: AudioDebugState
   ): void {
     const memoryPercent = stats.memoryBudgetMb > 0 ? Math.min(100, (stats.estimatedMb / stats.memoryBudgetMb) * 100) : 0;
     const gpuMode = gpu.supported ? (gpu.adapterAvailable ? "adapter ready" : "no adapter") : "unsupported";
@@ -243,6 +259,7 @@ export class Overlay {
       <div class="metric-row" data-debug-timing><span>Timing</span><span>RAF ${timing.rafMs.toFixed(1)} / render ${timing.renderMs.toFixed(1)} ms</span></div>
       <div class="metric-row"><span>CPU work</span><span>sim ${timing.updateMs.toFixed(1)} / stream ${timing.streamMs.toFixed(1)} / hud ${timing.hudMs.toFixed(1)} ms</span></div>
       <div class="metric-row"><span>Page</span><span>${timing.visibility}</span></div>
+      <div class="metric-row" data-debug-audio><span>Audio</span><span>${audio.state} / ${audio.track} / next ${audio.trackRemaining.toFixed(1)}s / ${audio.lastEffect}</span></div>
       <div class="metric-row" data-debug-gpu><span>GPU</span><span>${gpuLabel}</span></div>
       <div class="metric-row"><span>Adapter</span><span>${gpuAdapter}</span></div>
       <div class="metric-row"><span>WebGPU limits</span><span>${gpu.limits?.maxBindGroups ?? 0} bind groups / ${gpu.limits?.maxSampledTexturesPerShaderStage ?? 0} sampled tex</span></div>

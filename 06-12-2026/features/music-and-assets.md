@@ -9,7 +9,9 @@ The app currently uses self-contained procedural audio so the prototype can run 
 - Town Green Procedural
 - Meadow Hunt Procedural
 
-When one phrase ends, the next starts. The HUD combat log includes the current track name.
+When one phrase ends, the next starts. The music now layers a sustained pad, short melodic notes, and occasional low tones instead of only holding static oscillators. Strike, hit, and defeat cues add short tone/noise bursts.
+
+The debug HUD now reports audio state, current track, seconds until the next track phrase, and the most recent SFX label. `AmbientSound.dispose()` closes the Web Audio graph during app teardown.
 
 ## Royalty-Free Music Candidates
 

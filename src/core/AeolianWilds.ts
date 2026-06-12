@@ -29,6 +29,16 @@ type EnemyActor = {
   };
 };
 
+type FloatingLabel = {
+  sprite: THREE.Sprite;
+  material: THREE.SpriteMaterial;
+  texture: THREE.CanvasTexture;
+  startedAt: number;
+  duration: number;
+  origin: THREE.Vector3;
+  rise: number;
+};
+
 export class AeolianWilds {
   private readonly settings: QualitySettings = { ...defaultSettings };
   private readonly overlay: Overlay;
@@ -47,6 +57,16 @@ export class AeolianWilds {
     new THREE.TorusGeometry(2.2, 0.08, 8, 32),
     new THREE.MeshBasicMaterial({ color: "#f0c45b" })
   );
+  private readonly attackTrailMaterial = new THREE.MeshBasicMaterial({
+    color: "#ffe2a4",
+    transparent: true,
+    opacity: 0,
+    depthWrite: false
+  });
+  private readonly attackTrail = new THREE.Mesh(
+    new THREE.TorusGeometry(1.05, 0.045, 8, 34, Math.PI * 1.15),
+    this.attackTrailMaterial
+  );
   private playerModel?: THREE.Group;
   private renderer?: THREE.WebGLRenderer;
   private gpuDebug: WebGpuDebugInfo = {
@@ -58,6 +78,8 @@ export class AeolianWilds {
   private player: ThirdPersonController;
   private town?: StarterTown;
   private previewModel?: THREE.Group;
+  private playerRightArm?: THREE.Object3D;
+  private playerWeapon?: THREE.Object3D;
   private previewDraft: CharacterDraft = {
     name: "Rowan",
     classKey: "sentinel",
@@ -72,6 +94,8 @@ export class AeolianWilds {
   private selectedEnemyId = "";
   private playerAttackStarted = 0;
   private playerAttackUntil = 0;
+  private nextAttackAt = 0;
+  private readonly floatingLabels: FloatingLabel[] = [];
   private lastCollisionHits = 0;
   private collisionDisplayFrames = 0;
   private lastMessage = "Create a character and enter Briar Glen.";
@@ -98,7 +122,14 @@ export class AeolianWilds {
       onPerformanceChange: (preset, memoryBudgetMb) => this.updatePerformancePreset(preset, memoryBudgetMb),
       onToggleDebug: () => this.toggleDebug(),
       onBackToMenu: () => this.returnToMenu(),
-      onDebugAction: (action) => this.runDebugAction(action)
+      onDebugAction: (action) => this.runDebugAction(action),
+      onHotbarAction: (slot) => {
+        if (slot === "1") {
+          this.attackSelectedEnemy();
+        } else {
+          this.useMend();
+        }
+      }
     });
     this.player = new ThirdPersonController(this.camera);
   }
@@ -111,6 +142,10 @@ export class AeolianWilds {
     this.addLights();
     this.playerAvatar.name = "player-avatar";
     this.playerAvatar.visible = false;
+    this.attackTrail.visible = false;
+    this.attackTrail.position.set(0.12, 2.05, -1.05);
+    this.attackTrail.rotation.set(0.35, 0.2, -0.85);
+    this.playerAvatar.add(this.attackTrail);
     this.scene.add(this.playerAvatar);
     this.previewAvatar.name = "title-character-preview";
     this.previewAvatar.visible = true;
@@ -233,6 +268,7 @@ export class AeolianWilds {
       this.positionPreviewAvatar(elapsed);
       this.animateTown(elapsed);
     }
+    this.updateFloatingLabels(elapsed);
     const updateMs = performance.now() - updateStart;
 
     const streamStart = performance.now();
@@ -261,7 +297,8 @@ export class AeolianWilds {
         },
         this.gpuDebug,
         this.getRenderDebugState(),
-        this.lastTiming
+        this.lastTiming,
+        this.sound.getDebugState()
       );
       if (this.mode === "playing") {
         this.overlay.updateGameHud(this.getGameHudState());
@@ -390,9 +427,20 @@ export class AeolianWilds {
     }
 
     if (actions.slot2) {
-      const result = healCharacter(this.character, 28);
-      this.character = result.character;
-      this.lastMessage = result.healed > 0 ? `Mend restored ${result.healed} HP.` : "Mend had no effect at full HP.";
+      this.useMend();
+    }
+  }
+
+  private useMend(): void {
+    if (this.mode !== "playing") {
+      return;
+    }
+
+    const result = healCharacter(this.character, 28);
+    this.character = result.character;
+    this.lastMessage = result.healed > 0 ? `Mend restored ${result.healed} HP.` : "Mend had no effect at full HP.";
+    if (result.healed > 0) {
+      this.createFloatingLabel(`+${result.healed}`, this.player.position.x, this.player.position.z, "#8ff0a4", this.clock.elapsedTime);
     }
   }
 
@@ -452,6 +500,10 @@ export class AeolianWilds {
   }
 
   private attackSelectedEnemy(): void {
+    if (this.mode !== "playing") {
+      return;
+    }
+
     let actor = this.getSelectedEnemy();
     if (!actor) {
       this.selectNearestEnemy();
@@ -468,15 +520,29 @@ export class AeolianWilds {
       return;
     }
 
+    const now = this.clock.elapsedTime;
+    if (now < this.nextAttackAt) {
+      this.lastMessage = `Strike recovering ${(this.nextAttackAt - now).toFixed(1)}s.`;
+      return;
+    }
+
+    this.playerAvatar.rotation.y = Math.atan2(actor.spawn.x - this.player.position.x, actor.spawn.z - this.player.position.z);
     const result = strikeEnemy(this.character, actor.enemy);
     this.character = result.character;
     actor.enemy = result.enemy;
-    const now = this.clock.elapsedTime;
     this.playerAttackStarted = now;
     this.playerAttackUntil = now + 0.36;
+    this.nextAttackAt = now + 0.46;
     this.enemyHitUntil.set(actor.enemy.id, now + 0.32);
     this.sound.playStrike(this.character.classKey);
     this.sound.playHit(result.defeated);
+    this.createFloatingLabel(
+      result.defeated ? `${result.damage} KO` : `-${result.damage}`,
+      actor.spawn.x,
+      actor.spawn.z,
+      result.defeated ? "#ffd06a" : "#ff8c74",
+      now
+    );
 
     if (result.defeated) {
       this.quest = recordTutorialKill(this.quest);
@@ -533,6 +599,10 @@ export class AeolianWilds {
     if (elapsed >= this.playerAttackUntil) {
       this.playerModel.rotation.x = 0;
       this.playerModel.rotation.z = 0;
+      this.resetAnimatedPart(this.playerRightArm);
+      this.resetAnimatedPart(this.playerWeapon);
+      this.attackTrail.visible = false;
+      this.attackTrailMaterial.opacity = 0;
       return;
     }
 
@@ -540,8 +610,93 @@ export class AeolianWilds {
     const t = THREE.MathUtils.clamp((elapsed - this.playerAttackStarted) / duration, 0, 1);
     const swing = Math.sin(t * Math.PI);
     const snap = Math.sin(t * Math.PI * 2);
-    this.playerModel.rotation.x = -swing * 0.22;
-    this.playerModel.rotation.z = snap * 0.12;
+    this.playerModel.rotation.x = -swing * 0.12;
+    this.playerModel.rotation.z = snap * 0.06;
+    this.applyAttackPartRotation(this.playerRightArm, -1.1 * swing, snap * 0.22, -0.55 * swing);
+    this.applyAttackPartRotation(this.playerWeapon, -0.45 * swing, 0, snap * 0.2);
+    this.attackTrail.visible = true;
+    this.attackTrailMaterial.opacity = Math.max(0, swing * 0.78);
+    this.attackTrail.scale.setScalar(0.85 + swing * 0.48);
+    this.attackTrail.rotation.z = -1.05 + t * 2.1;
+  }
+
+  private resetAnimatedPart(part?: THREE.Object3D): void {
+    if (!part) {
+      return;
+    }
+
+    const base = part.userData.baseRotation as { x: number; y: number; z: number } | undefined;
+    if (base) {
+      part.rotation.set(base.x, base.y, base.z);
+    }
+  }
+
+  private applyAttackPartRotation(part: THREE.Object3D | undefined, xOffset: number, yOffset: number, zOffset: number): void {
+    if (!part) {
+      return;
+    }
+
+    const base = part.userData.baseRotation as { x: number; y: number; z: number } | undefined;
+    part.rotation.set((base?.x ?? 0) + xOffset, (base?.y ?? 0) + yOffset, (base?.z ?? 0) + zOffset);
+  }
+
+  private createFloatingLabel(text: string, x: number, z: number, color: string, startedAt: number): void {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 96;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.font = "700 40px system-ui, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.lineWidth = 8;
+    context.strokeStyle = "rgba(22, 18, 15, 0.88)";
+    context.strokeText(text, canvas.width / 2, canvas.height / 2);
+    context.fillStyle = color;
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+    const sprite = new THREE.Sprite(material);
+    const y = this.streamer.terrain.getHeight(x, z) + 3.1;
+    const origin = new THREE.Vector3(x, y, z);
+    sprite.position.copy(origin);
+    sprite.scale.set(3.2, 1.2, 1);
+    this.scene.add(sprite);
+    this.floatingLabels.push({
+      sprite,
+      material,
+      texture,
+      startedAt,
+      duration: 1.05,
+      origin,
+      rise: 2.2
+    });
+  }
+
+  private updateFloatingLabels(elapsed: number): void {
+    for (let index = this.floatingLabels.length - 1; index >= 0; index -= 1) {
+      const label = this.floatingLabels[index];
+      const t = THREE.MathUtils.clamp((elapsed - label.startedAt) / label.duration, 0, 1);
+      if (t >= 1) {
+        this.scene.remove(label.sprite);
+        label.material.dispose();
+        label.texture.dispose();
+        this.floatingLabels.splice(index, 1);
+        continue;
+      }
+
+      label.sprite.position.set(label.origin.x, label.origin.y + label.rise * t, label.origin.z);
+      label.sprite.lookAt(this.camera.position);
+      label.material.opacity = 1 - t;
+      const scale = 1 + Math.sin(t * Math.PI) * 0.18;
+      label.sprite.scale.set(3.2 * scale, 1.2 * scale, 1);
+    }
   }
 
   private positionPreviewAvatar(elapsed: number): void {
@@ -554,7 +709,6 @@ export class AeolianWilds {
     this.camera.localToWorld(this.previewWorld);
     this.previewAvatar.position.copy(this.previewWorld);
     this.previewAvatar.lookAt(this.camera.position.x, this.previewAvatar.position.y, this.camera.position.z);
-    this.previewAvatar.rotateY(Math.PI);
     this.previewAvatar.rotation.z = Math.sin(elapsed * 1.7) * 0.035;
   }
 
@@ -700,6 +854,8 @@ export class AeolianWilds {
       outfitVariant: this.character.outfitVariant,
       scale: 1.25
     });
+    this.playerRightArm = this.playerModel.getObjectByName("right-arm");
+    this.playerWeapon = this.playerModel.getObjectByName("right-hand-weapon");
     this.playerAvatar.add(this.playerModel);
   }
 
@@ -713,6 +869,7 @@ export class AeolianWilds {
       outfitVariant: draft.outfitVariant,
       scale: 1.55
     });
+    this.previewModel.rotation.y = Math.PI;
     this.previewAvatar.add(this.previewModel);
   }
 
@@ -721,6 +878,7 @@ export class AeolianWilds {
     window.removeEventListener("resize", this.resize);
     this.controls?.dispose();
     this.streamer.dispose();
+    this.sound.dispose();
     this.renderer?.dispose();
   }
 }
