@@ -12,6 +12,15 @@ The debug HUD follows the WebGPU access model documented by MDN: detect `navigat
 
 ## Active Shader Pipelines
 
+### Starter Town And Enemy Surface Shaders
+
+- Code: `src/world/StarterTown.ts`, `src/core/AeolianWilds.ts`
+- Material: `THREE.MeshLambertMaterial`
+- Inputs: simple town prop geometry, enemy meshes, generated transforms, shared lighting
+- Purpose: renders the offline MMORPG starter loop without adding heavy assets or custom material branches.
+
+These props intentionally use the same renderer-generated shader path as the rest of the world. The goal for this pass is stable WebGPU/WebGL compatibility and 60 FPS while the gameplay loop takes shape.
+
 ### Terrain Surface Shader
 
 - Code: `src/world/TerrainChunk.ts`
@@ -41,6 +50,8 @@ Trees are grouped by trunk/crown geometry into instanced meshes so the world can
 
 The debug HUD reports trunk and crown-part totals. This is intentional: if tree instance buffers are miscounted, the first visible symptom is a trunk without matching crown geometry.
 
+Instanced grass and tree meshes now disable frustum culling and recompute bounds after instance matrices are written. This is a conservative rendering choice for debugging partial trees near the camera.
+
 ### River Water Shader
 
 - Code: `src/world/TerrainChunk.ts`
@@ -63,7 +74,9 @@ The river mesh is generated per chunk from the same height sampler that carves t
 - Far chunks use lower LOD terrain and avoid expensive foliage.
 - The adaptive budget lowers horizon radius, density, and resolution scale when frame time rises.
 - The debug HUD shows live chunks, queued chunks, LOD rings, memory estimate, and current horizon.
-- The debug HUD also shows WebGPU adapter status, core/compatibility signal, preferred canvas format, max 2D texture dimension, adapter metadata when exposed, and feature count.
+- The debug HUD also shows WebGPU adapter status, core/compatibility signal, preferred canvas format, max 2D texture dimension, adapter metadata when exposed, feature count, bind group limit, sampled texture limit, max buffer size, max storage-buffer binding size, and max vertex attributes.
+
+As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect `navigator.gpu`, request an adapter, read features and limits, then show the actual browser path in debug.
 
 ## Next Shader Upgrade
 

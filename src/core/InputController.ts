@@ -15,6 +15,13 @@ export type InputState = {
   mouseDy: number;
 };
 
+export type InputActions = {
+  targetNext: boolean;
+  slot1: boolean;
+  slot2: boolean;
+  toggleDebug: boolean;
+};
+
 export class InputController {
   readonly state: InputState = {
     forward: false,
@@ -36,6 +43,7 @@ export class InputController {
   private readonly canvas: HTMLCanvasElement;
   private readonly onEscape: () => void;
   private readonly pressedUntil = new Map<string, number>();
+  private readonly actions = new Set<keyof InputActions>();
 
   constructor(canvas: HTMLCanvasElement, onEscape: () => void) {
     this.canvas = canvas;
@@ -61,6 +69,17 @@ export class InputController {
     this.state.mouseDx = 0;
     this.state.mouseDy = 0;
     return mouse;
+  }
+
+  consumeActions(): InputActions {
+    const actions: InputActions = {
+      targetNext: this.actions.has("targetNext"),
+      slot1: this.actions.has("slot1"),
+      slot2: this.actions.has("slot2"),
+      toggleDebug: this.actions.has("toggleDebug")
+    };
+    this.actions.clear();
+    return actions;
   }
 
   dispose(): void {
@@ -108,6 +127,7 @@ export class InputController {
     const code = this.normalizeKeyCode(event);
     this.pressedUntil.delete(code);
     this.setKey(code, true);
+    this.queueAction(code);
 
     if (this.isGameKey(code)) {
       event.preventDefault();
@@ -180,6 +200,23 @@ export class InputController {
     }
   }
 
+  private queueAction(code: string): void {
+    switch (code) {
+      case "Tab":
+        this.actions.add("targetNext");
+        break;
+      case "Digit1":
+        this.actions.add("slot1");
+        break;
+      case "Digit2":
+        this.actions.add("slot2");
+        break;
+      case "KeyT":
+        this.actions.add("toggleDebug");
+        break;
+    }
+  }
+
   private normalizeKeyCode(event: KeyboardEvent): string {
     if (event.code) {
       return event.code;
@@ -210,6 +247,13 @@ export class InputController {
       case "f":
       case "F":
         return "KeyF";
+      case "t":
+      case "T":
+        return "KeyT";
+      case "1":
+        return "Digit1";
+      case "2":
+        return "Digit2";
       case " ":
       case "Space":
       case "Spacebar":
@@ -235,7 +279,11 @@ export class InputController {
       "ArrowRight",
       "ShiftLeft",
       "ShiftRight",
-      "Space"
+      "Space",
+      "Tab",
+      "Digit1",
+      "Digit2",
+      "KeyT"
     ].includes(code);
   }
 }

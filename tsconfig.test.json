@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "dist-test",
+    "rootDir": ".",
+    "types": ["node"],
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/config/**/*.ts", "src/game/**/*.ts", "tests/**/*.ts"]
+}

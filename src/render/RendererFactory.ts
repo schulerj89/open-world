@@ -24,6 +24,9 @@ export type WebGpuDebugInfo = {
     maxBindGroups?: number;
     maxColorAttachments?: number;
     maxSampledTexturesPerShaderStage?: number;
+    maxBufferSize?: number;
+    maxStorageBufferBindingSize?: number;
+    maxVertexAttributes?: number;
   };
   error?: string;
 };
@@ -130,7 +133,10 @@ async function collectWebGpuDebugInfo(): Promise<WebGpuDebugInfo> {
       maxTextureDimension2D: typedAdapter.limits?.maxTextureDimension2D,
       maxBindGroups: typedAdapter.limits?.maxBindGroups,
       maxColorAttachments: typedAdapter.limits?.maxColorAttachments,
-      maxSampledTexturesPerShaderStage: typedAdapter.limits?.maxSampledTexturesPerShaderStage
+      maxSampledTexturesPerShaderStage: typedAdapter.limits?.maxSampledTexturesPerShaderStage,
+      maxBufferSize: typedAdapter.limits?.maxBufferSize,
+      maxStorageBufferBindingSize: typedAdapter.limits?.maxStorageBufferBindingSize,
+      maxVertexAttributes: typedAdapter.limits?.maxVertexAttributes
     };
   } catch (error) {
     info.error = error instanceof Error ? error.message : String(error);

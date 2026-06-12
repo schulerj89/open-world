@@ -122,6 +122,7 @@ export class NatureFactory {
       const mesh = new THREE.InstancedMesh(grassCardGeometry, material, countPerBand);
       mesh.castShadow = false;
       mesh.receiveShadow = true;
+      mesh.frustumCulled = false;
       mesh.userData.windPhase = band * 0.9 + this.noise.value(chunkX + band, chunkZ);
       mesh.userData.windKind = "grass";
 
@@ -153,6 +154,7 @@ export class NatureFactory {
       }
 
       mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
       group.add(mesh);
       windTargets.push(mesh);
     }
@@ -197,12 +199,17 @@ export class NatureFactory {
     }
 
     const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, treeCount);
+    trunks.frustumCulled = false;
     const cones = [
       new THREE.InstancedMesh(coneGeometry, leafMaterial, treeCount),
       new THREE.InstancedMesh(coneGeometry, darkLeafMaterial, treeCount),
       new THREE.InstancedMesh(coneGeometry, leafMaterial, treeCount)
     ];
     const crowns = new THREE.InstancedMesh(roundGeometry, leafMaterial, treeCount);
+    cones.forEach((cone) => {
+      cone.frustumCulled = false;
+    });
+    crowns.frustumCulled = false;
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
     const rotation = new THREE.Euler();
@@ -258,16 +265,19 @@ export class NatureFactory {
 
     trunks.count = trunkIndex;
     trunks.instanceMatrix.needsUpdate = true;
+    trunks.computeBoundingSphere();
     group.add(trunks);
 
     for (const cone of cones) {
       cone.count = coniferIndex;
       cone.instanceMatrix.needsUpdate = true;
+      cone.computeBoundingSphere();
       group.add(cone);
     }
 
     crowns.count = broadleafIndex;
     crowns.instanceMatrix.needsUpdate = true;
+    crowns.computeBoundingSphere();
     group.add(crowns);
 
     return {

@@ -78,6 +78,17 @@ export class FirstPersonController {
     this.position.copy(this.camera.position);
   }
 
+  teleportTo(x: number, z: number, heights: HeightSampler, yaw = 0): void {
+    const y = heights.getHeight(x, z) + 3.1;
+    this.position.set(x, y, z);
+    this.velocity.set(0, 0, 0);
+    this.yaw = yaw;
+    this.pitch = -0.08;
+    this.grounded = true;
+    this.camera.position.copy(this.position);
+    this.camera.rotation.set(this.pitch, this.yaw, 0);
+  }
+
   getDebugState(): {
     x: number;
     y: number;
