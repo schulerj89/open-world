@@ -45,3 +45,18 @@ Automated browser checks were run against production preview on `127.0.0.1:4190`
 - Production preview reported 60 FPS and 16.7 ms frame time after warmup and movement.
 
 Console notes from headless Chromium showed WebGPU adapter unavailable, so it used the WebGL fallback. The debug HUD still reported WebGPU feature detection and limits as intended.
+
+## Visible Chrome Audit
+
+After the first automation pass, the same gameplay path was also verified in the visible Chrome browser on `127.0.0.1:4191`.
+
+- Settings dropdowns changed to Performance preset and 520 MB memory cap.
+- Character builder created `Browser Hero`, class `Wayfarer`.
+- Debug HUD was toggled with `T`.
+- Movement used live X/Y/Z debug coordinates to reach two slime spawns.
+- Slot 1 defeated Meadow Slime 1 and Meadow Slime 2.
+- Final HUD showed `12g`, `2 / 2 slimes defeated`, and `Tutorial complete`.
+- Slot labels `1 Strike` and `2 Mend` remained visible.
+- Debug HUD reported 60 FPS and 16.7 ms frame time.
+- Chrome WebGPU debug reported adapter ready, core mode, `bgra8unorm`, and `16384px texture`.
+- The Chrome tab was left open for user inspection.
