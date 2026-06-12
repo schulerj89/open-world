@@ -63,3 +63,9 @@ The ground asset owns the terrain-following segmented `BufferGeometry`, samples 
 `TownPlazaAsset` now represents the central Briar Glen plaza/statue as a `WorldAsset` child of `StarterTown`. It owns the paved disc, stone rings, statue base, statue cap, animated crystal, contact shadow, and one coarse prop collider.
 
 The collider owner label stays `plaza-statue-base`, so existing browser QA and HUD checks still report `prop / plaza-statue-base`. The surrounding plaza floor remains walkable visual geometry; only the statue base blocks movement.
+
+## June 12 Market Asset Extraction
+
+`TownMarketAsset` now represents the Briar Glen market stalls as a `WorldAsset` child of `StarterTown`. It owns the three stall meshes, awnings, counters, awning posts, produce props, hanging lanterns, contact shadows, and three coarse prop colliders.
+
+The collider owner labels stay `market-stall-1`, `market-stall-2`, and `market-stall-3`, so the HUD can still distinguish market blockers after the colliders moved out of `StarterTown.colliders` and into the child asset tree.

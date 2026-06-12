@@ -18,6 +18,7 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 - Cottages are now `TownBuildingAsset` child assets instead of inline `StarterTown` mesh blocks.
 - Walkable stone, road, training-yard, and meadow surfaces are now `TownGroundAsset` child assets instead of inline `StarterTown` meshes.
 - The central plaza/statue is now a `TownPlazaAsset` child asset with its own statue collider.
+- Market stalls are now a `TownMarketAsset` child asset with stall colliders and local visual detail.
 - Fences use sampled circle colliders along the rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
@@ -73,6 +74,15 @@ The central plaza/statue path was moved into `TownPlazaAsset extends WorldAsset`
 - It owns the paved disc, stone rings, statue base, cap, animated crystal, and contact shadow.
 - It owns one coarse prop collider and preserves the debug label `plaza-statue-base`.
 - The plaza floor remains decorative and walkable; collision is limited to the statue base so movement around the town center stays predictable.
+
+## Market Asset Extraction
+
+The market stall path was moved into `TownMarketAsset extends WorldAsset`.
+
+- The market asset is registered as a `StarterTown` child asset.
+- It owns all three stalls, their awnings, counters, awning posts, produce piles, hanging lanterns, contact shadows, and collider labels.
+- The old debug labels are preserved as `market-stall-1`, `market-stall-2`, and `market-stall-3`.
+- Each stall keeps one coarse prop collider so the richer visual counters and produce do not create snaggy per-object movement blockers.
 
 ## Second Detail Pass
 

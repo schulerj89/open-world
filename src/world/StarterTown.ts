@@ -5,6 +5,7 @@ import { createContactShadow } from "./ContactShadow.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { TownBuildingAsset } from "./TownBuildingAsset.js";
 import { TownGroundAsset } from "./TownGroundAsset.js";
+import { TownMarketAsset } from "./TownMarketAsset.js";
 import { TownNpcAsset } from "./TownNpcAsset.js";
 import { TownPlazaAsset } from "./TownPlazaAsset.js";
 import { WorldAsset } from "./WorldAsset.js";
@@ -343,17 +344,21 @@ export class StarterTown extends WorldAsset {
   }
 
   private addMarket(x: number, z: number): void {
-    [-5, 0, 5].forEach((offset, index) => {
-      const stall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 2.2, 2, 1, 1), this.cottageMaterial);
-      stall.position.set(x + offset, this.getHeight(x + offset, z) + 0.65, z);
-      this.group.add(stall);
-      this.addWorldShadow(x + offset, z, 2.25, 1.5, 0);
-      this.addCollider(x + offset, z, 2.0, "prop", `market-stall-${index + 1}`);
-      const awning = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.1, 4), index % 2 === 0 ? this.trimMaterial : this.markerMaterial);
-      awning.position.set(x + offset, this.getHeight(x + offset, z) + 2.1, z);
-      awning.rotation.y = Math.PI * 0.25;
-      this.group.add(awning);
-    });
+    this.addChildAsset(
+      new TownMarketAsset({
+        x,
+        z,
+        heights: this.heights,
+        materials: {
+          stall: this.cottageMaterial,
+          awningPrimary: this.trimMaterial,
+          awningAccent: this.markerMaterial,
+          wood: this.woodMaterial,
+          light: this.lightMaterial,
+          produce: this.flowerMaterial
+        }
+      })
+    );
   }
 
   private addTownDetails(): void {

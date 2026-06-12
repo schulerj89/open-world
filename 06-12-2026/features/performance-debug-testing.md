@@ -246,3 +246,17 @@ A visible in-app browser check on `127.0.0.1:4208` verified the `TownPlazaAsset`
 - Render debug in the movement smoke view reported about `252 calls / 109,240 estimated tris`, with `787 geos / 11 tex`.
 - No browser console warnings or errors were captured.
 - This in-app browser run remained RAF-throttled around `1 FPS` with low render submit time (`render 6.1 ms` to `7.8 ms`), so it verifies the plaza asset/collision/update path and diagnostics but not final 60 FPS performance.
+
+## Market Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownMarketAsset` extraction.
+
+- Coordinate warp to `X 12 / Z 10` resolved the extracted market child asset and reported `Collision 2 hits / 22 tree / 81 town / 55 room / 4 enemy blockers`.
+- The first collision sample reported `Last hit prop / market-stall-3 / push 0.44 / at X 17.0 Z 10.0`, confirming child market colliders preserve `market-stall-*` labels after extraction.
+- After a movement/look smoke check, the HUD reported `Collision 1 hits / 22 tree / 81 town / 55 room / 4 enemy blockers` and `Last hit prop / market-stall-2 / push 0.02 / at X 12.0 Z 10.0`.
+- Movement/look testing changed HUD values to `Position X 14.1 / Y 7.9 / Z 13.2` and `Look Yaw -10.3 / Pitch 16.0`.
+- A tighter jump sample changed the HUD to `Position X 14.1 / Y 8.9 / Z 13.2`, `Speed 6.2 u/s`, and `Grounded no`.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
+- Render debug in the market smoke view reported about `1019 calls / 130,684 estimated tris`, with `869 geos / 11 tex`.
+- One warmed in-app browser sample reached `60 FPS`, `RAF 16.5 ms`, and render submit around `3.5 ms`; the earlier market warp sample was `30 FPS`, `RAF 67.0 ms`, and render submit around `2.8 ms`.
+- No browser console warnings or errors were captured.

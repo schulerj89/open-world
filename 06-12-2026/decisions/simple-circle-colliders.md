@@ -45,3 +45,5 @@ NPC extraction keeps one simple circle per townsperson. `TownNpcAsset` owns that
 Ground extraction does not add collision. `TownGroundAsset` is walkable visual flooring only; the plaza statue base remains a separate `prop / plaza-statue-base` circle collider.
 
 Plaza extraction keeps the same simple collider shape and debug identity. `TownPlazaAsset` owns the central statue blocker as one `prop / plaza-statue-base` circle, while the paved disc and stone rings remain walkable visual geometry.
+
+Market extraction keeps one simple collider per stall. `TownMarketAsset` owns the three `prop / market-stall-*` circles while its counters, produce, lanterns, and awning posts remain visual detail inside the same asset.
