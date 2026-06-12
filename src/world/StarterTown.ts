@@ -6,6 +6,7 @@ import type { HeightSampler } from "./HeightSampler.js";
 import { TownBuildingAsset } from "./TownBuildingAsset.js";
 import { TownGroundAsset } from "./TownGroundAsset.js";
 import { TownNpcAsset } from "./TownNpcAsset.js";
+import { TownPlazaAsset } from "./TownPlazaAsset.js";
 import { WorldAsset } from "./WorldAsset.js";
 
 export type EnemySpawn = {
@@ -328,16 +329,17 @@ export class StarterTown extends WorldAsset {
   }
 
   private addPlaza(): void {
-    const plaza = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 0.18, 32), this.stoneMaterial);
-    plaza.position.set(0, this.getHeight(0, 0) + 0.09, 0);
-    this.group.add(plaza);
-    const statueBase = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.3, 1.2, 16), this.stoneMaterial);
-    statueBase.position.set(0, this.getHeight(0, 0) + 0.7, 0);
-    this.group.add(statueBase);
-    this.addCollider(0, 0, 2.3, "prop", "plaza-statue-base");
-    const crystal = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 2), this.markerMaterial);
-    crystal.position.set(0, this.getHeight(0, 0) + 2.35, 0);
-    this.group.add(crystal);
+    this.addChildAsset(
+      new TownPlazaAsset({
+        heights: this.heights,
+        materials: {
+          stone: this.stoneMaterial,
+          marker: this.markerMaterial,
+          brightStone: this.brightStoneMaterial,
+          darkStone: this.darkStoneMaterial
+        }
+      })
+    );
   }
 
   private addMarket(x: number, z: number): void {

@@ -43,3 +43,5 @@ Building extraction keeps the same simple collider shape: `TownBuildingAsset` ow
 NPC extraction keeps one simple circle per townsperson. `TownNpcAsset` owns that collider and reports either `tutorial-guide-npc` or the numbered town NPC label in `Last hit`.
 
 Ground extraction does not add collision. `TownGroundAsset` is walkable visual flooring only; the plaza statue base remains a separate `prop / plaza-statue-base` circle collider.
+
+Plaza extraction keeps the same simple collider shape and debug identity. `TownPlazaAsset` owns the central statue blocker as one `prop / plaza-statue-base` circle, while the paved disc and stone rings remain walkable visual geometry.

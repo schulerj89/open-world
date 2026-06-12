@@ -17,6 +17,7 @@ The town detail pass reuses small shared geometry/material patterns and keeps co
 - Buildings use one circle collider per cottage.
 - Cottages are now `TownBuildingAsset` child assets instead of inline `StarterTown` mesh blocks.
 - Walkable stone, road, training-yard, and meadow surfaces are now `TownGroundAsset` child assets instead of inline `StarterTown` meshes.
+- The central plaza/statue is now a `TownPlazaAsset` child asset with its own statue collider.
 - Fences use sampled circle colliders along the rail.
 - Props that should block movement get a small circle collider.
 - Decorative flowers and window glows are visual-only.
@@ -63,6 +64,15 @@ The terrain-following town patch path was moved into `TownGroundAsset extends Wo
 - Each ground asset builds a segmented terrain-following `BufferGeometry` by sampling the shared height field per vertex.
 - Ground assets intentionally own no colliders; buildings, props, NPCs, enemies, fences, and trees remain the blocking systems.
 - Cobblestones, road-edge stones, shrubs, flowers, and rocks stay in the existing instanced batches to preserve draw-call efficiency.
+
+## Plaza Asset Extraction
+
+The central plaza/statue path was moved into `TownPlazaAsset extends WorldAsset`.
+
+- The plaza asset is registered as a `StarterTown` child asset.
+- It owns the paved disc, stone rings, statue base, cap, animated crystal, and contact shadow.
+- It owns one coarse prop collider and preserves the debug label `plaza-statue-base`.
+- The plaza floor remains decorative and walkable; collision is limited to the statue base so movement around the town center stays predictable.
 
 ## Second Detail Pass
 

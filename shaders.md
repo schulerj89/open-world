@@ -31,6 +31,8 @@ The sharper town-detail pass adds generated `CanvasTexture` patterns for stone, 
 
 `TownNpcAsset` uses `createHumanoidModel`, so townspeople share the same Lambert-lit procedural character shader path as the player preview, player avatar, and other humanoids. The extraction changes ownership and collision, not the material path.
 
+`TownPlazaAsset` uses the same renderer-native shader path for the central paved disc, stone rings, statue base, cap, and marker crystal. The crystal animation is CPU transform motion on a Lambert-lit mesh; no raw GLSL/WGSL shader is introduced for this pass.
+
 `CombatDebugRoom` uses the same renderer-native shader path: Lambert-lit floor, walls, pillars, spawn rings, and dummy geometry. The room is intentionally procedural and does not require web assets. Combat-room motion remains CPU transform animation for the player, slime, hit pulse, and selection ring; WebGPU data is used for diagnostics rather than direct WGSL/device-level control.
 
 ### Terrain Surface Shader

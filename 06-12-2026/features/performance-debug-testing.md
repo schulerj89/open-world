@@ -232,3 +232,17 @@ A visible in-app browser check on `127.0.0.1:4208` verified the `TownGroundAsset
 - A 1.5 second town-ground-view screenshot comparison changed by `235,135` bytes, confirming visible town animation still updates while ground patches render through child assets.
 - No browser console warnings or errors were captured.
 - This in-app browser run remained RAF-throttled around `1 FPS` with low render submit time (`render 4.3 ms`), so it verifies the ground asset/render path and diagnostics but not final 60 FPS performance.
+
+## Plaza Asset Extraction Visible Audit
+
+A visible in-app browser check on `127.0.0.1:4208` verified the `TownPlazaAsset` extraction.
+
+- Before coordinate warp, the town HUD still reported `Collision 0 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`, confirming recursive child collider counting stayed at the expected town blocker total.
+- Coordinate warp to `X 0 / Z 0` resolved the extracted plaza child asset and reported `Collision 1 hits / 28 tree / 81 town / 55 room / 4 enemy blockers`.
+- The collision source reported `Last hit prop / plaza-statue-base / push 3.02 / at X 0.0 Z 0.0`, preserving the stable statue debug label after extraction.
+- The plaza view showed the added stone rings, statue cap, contact shadow, and animated marker crystal in the in-app browser.
+- Movement/look/jump smoke testing changed HUD values after player controls: `Position X 3.0 / Y 10.1 / Z 0.0`, `Look Yaw -32.8 / Pitch 16.0`, `Speed 4.4 u/s`, and `Grounded no`.
+- WebGPU debug reported adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, `19` features, `16384px texture`, `4` bind groups, `48` sampled textures, `2147483648` max buffer size, and `30` vertex attributes.
+- Render debug in the movement smoke view reported about `252 calls / 109,240 estimated tris`, with `787 geos / 11 tex`.
+- No browser console warnings or errors were captured.
+- This in-app browser run remained RAF-throttled around `1 FPS` with low render submit time (`render 6.1 ms` to `7.8 ms`), so it verifies the plaza asset/collision/update path and diagnostics but not final 60 FPS performance.

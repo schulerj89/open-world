@@ -57,3 +57,9 @@ The town no longer scans every object for `idleNpc` and `windowGlow` flags from 
 `TownGroundAsset` now represents walkable town ground surfaces such as the stone town center, roads, training yard, and meadow ground. These assets are `WorldAsset` children with zero blockers because they are visual walking surfaces, not collision obstacles.
 
 The ground asset owns the terrain-following segmented `BufferGeometry`, samples the shared `HeightSampler`, and keeps the previous road/stone materials. This moves ground/flooring into the inherited asset tree without changing collision semantics or adding per-stone draw calls.
+
+## June 12 Plaza Asset Extraction
+
+`TownPlazaAsset` now represents the central Briar Glen plaza/statue as a `WorldAsset` child of `StarterTown`. It owns the paved disc, stone rings, statue base, statue cap, animated crystal, contact shadow, and one coarse prop collider.
+
+The collider owner label stays `plaza-statue-base`, so existing browser QA and HUD checks still report `prop / plaza-statue-base`. The surrounding plaza floor remains walkable visual geometry; only the statue base blocks movement.
