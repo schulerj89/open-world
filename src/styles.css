@@ -130,8 +130,7 @@ h1 {
 
 .ghost-button,
 .icon-button {
-  background: rgb(6 18 15 / 0.58);
-  backdrop-filter: blur(12px);
+  background: rgb(6 18 15 / 0.82);
 }
 
 .ghost-button {
@@ -151,9 +150,8 @@ h1 {
   padding: 18px;
   border: 1px solid rgb(236 228 196 / 0.22);
   border-radius: 8px;
-  background: rgb(8 18 15 / 0.82);
+  background: rgb(8 18 15 / 0.94);
   box-shadow: 0 16px 50px rgb(0 0 0 / 0.35);
-  backdrop-filter: blur(18px);
 }
 
 .settings-panel[hidden],
@@ -256,9 +254,9 @@ h1 {
   padding: 12px;
   border: 1px solid rgb(246 240 223 / 0.16);
   border-radius: 8px;
-  background: rgb(8 18 15 / 0.56);
+  background: rgb(8 18 15 / 0.88);
   box-shadow: 0 10px 36px rgb(0 0 0 / 0.28);
-  backdrop-filter: blur(14px);
+  contain: layout paint style;
   color: #f8f0d6;
   font-size: 0.82rem;
   pointer-events: none;
@@ -276,9 +274,9 @@ h1 {
   position: absolute;
   border: 1px solid rgb(246 240 223 / 0.16);
   border-radius: 8px;
-  background: rgb(8 18 15 / 0.62);
+  background: rgb(8 18 15 / 0.86);
   box-shadow: 0 10px 36px rgb(0 0 0 / 0.25);
-  backdrop-filter: blur(12px);
+  contain: layout paint style;
 }
 
 .player-frame {
@@ -422,11 +420,10 @@ h1 {
   min-height: 34px;
   border: 1px solid rgb(246 240 223 / 0.18);
   border-radius: 8px;
-  background: rgb(8 18 15 / 0.68);
+  background: rgb(8 18 15 / 0.86);
   color: #fff8e7;
   padding: 0 10px;
   cursor: pointer;
-  backdrop-filter: blur(12px);
 }
 
 .metric-row {

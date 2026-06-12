@@ -1,13 +1,22 @@
 import * as THREE from "three";
 import { getTextureAssets } from "../render/TextureAssets";
+import type { CircleCollider } from "./Collision";
 import { Noise } from "./Noise";
 import type { TerrainHeight } from "./TerrainHeight";
 
 export type NatureBuildResult = {
   group: THREE.Group;
-  windTargets: THREE.Object3D[];
+  windTargets: NatureWindTarget[];
+  colliders: CircleCollider[];
   estimatedMb: number;
   stats: NatureStats;
+};
+
+export type NatureWindTarget = {
+  mesh: THREE.InstancedMesh;
+  bases: Float32Array;
+  phases: Float32Array;
+  amplitudes: Float32Array;
 };
 
 export type NatureStats = {
@@ -70,7 +79,8 @@ export class NatureFactory {
     lod: number
   ): NatureBuildResult {
     const group = new THREE.Group();
-    const windTargets: THREE.Object3D[] = [];
+    const windTargets: NatureWindTarget[] = [];
+    const colliders: CircleCollider[] = [];
     let estimatedMb = 0;
     const stats: NatureStats = {
       grassInstances: 0,
@@ -83,6 +93,7 @@ export class NatureFactory {
       const grass = this.buildGrass(chunkX, chunkZ, chunkSize, terrain, grassDensity, lod);
       group.add(grass.group);
       windTargets.push(...grass.windTargets);
+      colliders.push(...grass.colliders);
       estimatedMb += grass.estimatedMb;
       stats.grassInstances += grass.stats.grassInstances;
     }
@@ -91,13 +102,14 @@ export class NatureFactory {
       const trees = this.buildTrees(chunkX, chunkZ, chunkSize, terrain, treeDensity, lod);
       group.add(trees.group);
       windTargets.push(...trees.windTargets);
+      colliders.push(...trees.colliders);
       estimatedMb += trees.estimatedMb;
       stats.trunks += trees.stats.trunks;
       stats.coniferCrowns += trees.stats.coniferCrowns;
       stats.broadleafCrowns += trees.stats.broadleafCrowns;
     }
 
-    return { group, windTargets, estimatedMb, stats };
+    return { group, windTargets, colliders, estimatedMb, stats };
   }
 
   private buildGrass(
@@ -109,7 +121,7 @@ export class NatureFactory {
     lod: number
   ): NatureBuildResult {
     const group = new THREE.Group();
-    const windTargets: THREE.Object3D[] = [];
+    const windTargets: NatureWindTarget[] = [];
     const bandCount = 2;
     const countPerBand = Math.max(8, Math.floor(24 * density));
     const matrix = new THREE.Matrix4();
@@ -149,12 +161,12 @@ export class NatureFactory {
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
       group.add(mesh);
-      windTargets.push(mesh);
     }
 
     return {
       group,
       windTargets,
+      colliders: [],
       estimatedMb: (bandCount * countPerBand * 72) / 1024 / 1024,
       stats: {
         grassInstances: bandCount * countPerBand,
@@ -174,13 +186,15 @@ export class NatureFactory {
     lod: number
   ): NatureBuildResult {
     const group = new THREE.Group();
-    const windTargets: THREE.Object3D[] = [];
+    const windTargets: NatureWindTarget[] = [];
+    const colliders: CircleCollider[] = [];
     const treeCount = Math.floor((lod === 0 ? 10 : lod === 1 ? 3 : 0) * density);
 
     if (treeCount < 1) {
       return {
         group,
         windTargets,
+        colliders,
         estimatedMb: 0,
         stats: {
           grassInstances: 0,
@@ -199,6 +213,8 @@ export class NatureFactory {
       new THREE.InstancedMesh(coneGeometry, leafMaterial, treeCount)
     ];
     const crowns = new THREE.InstancedMesh(roundGeometry, leafMaterial, treeCount);
+    const coneWindTargets = cones.map((cone) => createWindTarget(cone, treeCount));
+    const crownWindTarget = createWindTarget(crowns, treeCount);
     cones.forEach((cone) => {
       cone.frustumCulled = false;
     });
@@ -226,6 +242,8 @@ export class NatureFactory {
 
       const treeHeight = 5.5 + this.noise.value(worldX, worldZ) * 7.5;
       const yaw = this.noise.value(worldZ, worldX) * Math.PI * 2;
+      const phase = this.noise.value(worldX + 17, worldZ - 29) * Math.PI * 2;
+      const amplitude = 0.34 + treeHeight * 0.035;
       rotation.set(0, yaw, 0);
       quaternion.setFromEuler(rotation);
 
@@ -233,6 +251,7 @@ export class NatureFactory {
       scale.set(1, treeHeight, 1);
       matrix.compose(position, quaternion, scale);
       trunks.setMatrixAt(trunkIndex, matrix);
+      colliders.push({ x: worldX, z: worldZ, radius: 0.55 + Math.min(0.55, treeHeight * 0.045), kind: "tree" });
 
       const conifer = this.noise.value(worldX + 81, worldZ - 43) > 0.42;
       if (conifer) {
@@ -242,6 +261,7 @@ export class NatureFactory {
           scale.y = treeHeight * 0.62;
           matrix.compose(position, quaternion, scale);
           cones[tier].setMatrixAt(coniferIndex, matrix);
+          setWindBase(coneWindTargets[tier], coniferIndex, position, scale, yaw, phase + tier * 0.26, amplitude * (1 + tier * 0.18));
         }
         coniferIndex += 1;
       } else {
@@ -249,6 +269,7 @@ export class NatureFactory {
         scale.set(treeHeight * 0.42, treeHeight * 0.5, treeHeight * 0.42);
         matrix.compose(position, quaternion, scale);
         crowns.setMatrixAt(broadleafIndex, matrix);
+        setWindBase(crownWindTarget, broadleafIndex, position, scale, yaw, phase, amplitude * 1.25);
         broadleafIndex += 1;
       }
 
@@ -271,10 +292,12 @@ export class NatureFactory {
     crowns.instanceMatrix.needsUpdate = true;
     crowns.computeBoundingSphere();
     group.add(crowns);
+    windTargets.push(...coneWindTargets, crownWindTarget);
 
     return {
       group,
       windTargets,
+      colliders,
       estimatedMb: Math.max(0.02, treeCount * 0.004),
       stats: {
         grassInstances: 0,
@@ -309,4 +332,34 @@ function createGrassCardGeometry(): THREE.BufferGeometry {
 function markSharedGeometry<T extends THREE.BufferGeometry>(geometry: T): T {
   geometry.userData.shared = true;
   return geometry;
+}
+
+function createWindTarget(mesh: THREE.InstancedMesh, count: number): NatureWindTarget {
+  return {
+    mesh,
+    bases: new Float32Array(count * 7),
+    phases: new Float32Array(count),
+    amplitudes: new Float32Array(count)
+  };
+}
+
+function setWindBase(
+  target: NatureWindTarget,
+  index: number,
+  position: THREE.Vector3,
+  scale: THREE.Vector3,
+  yaw: number,
+  phase: number,
+  amplitude: number
+): void {
+  const cursor = index * 7;
+  target.bases[cursor] = position.x;
+  target.bases[cursor + 1] = position.y;
+  target.bases[cursor + 2] = position.z;
+  target.bases[cursor + 3] = scale.x;
+  target.bases[cursor + 4] = scale.y;
+  target.bases[cursor + 5] = scale.z;
+  target.bases[cursor + 6] = yaw;
+  target.phases[index] = phase;
+  target.amplitudes[index] = amplitude;
 }

@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { getTextureAssets } from "../render/TextureAssets";
+import { resolveCircleCollision, type CircleCollider } from "./Collision";
 import type { TerrainHeight } from "./TerrainHeight";
-import type { NatureBuildResult, NatureStats } from "./NatureFactory";
+import type { NatureBuildResult, NatureStats, NatureWindTarget } from "./NatureFactory";
 
 const assets = getTextureAssets();
 const grassTerrainMaterial = new THREE.MeshLambertMaterial({
@@ -25,7 +26,8 @@ export type TerrainChunkParams = {
 export class TerrainChunk {
   readonly key: string;
   readonly group = new THREE.Group();
-  readonly windTargets: THREE.Object3D[];
+  readonly windTargets: NatureWindTarget[];
+  readonly colliders: CircleCollider[];
   readonly estimatedMb: number;
   readonly lod: number;
   readonly natureStats: NatureStats;
@@ -39,6 +41,7 @@ export class TerrainChunk {
     this.group.add(terrainMesh);
     this.group.add(params.nature.group);
     this.windTargets = params.nature.windTargets;
+    this.colliders = params.nature.colliders;
     this.estimatedMb = this.estimateTerrainMb(terrainMesh.geometry) + params.nature.estimatedMb;
   }
 
@@ -54,6 +57,48 @@ export class TerrainChunk {
         }
       }
     });
+  }
+
+  animateWind(time: number, strength: number): void {
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Euler();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+
+    for (const target of this.windTargets) {
+      const count = target.mesh.count;
+      for (let i = 0; i < count; i += 1) {
+        const cursor = i * 7;
+        const phase = target.phases[i];
+        const sway = Math.sin(time * 1.45 + phase) * target.amplitudes[i] * strength * 1.4;
+        position.set(
+          target.bases[cursor] + Math.cos(phase) * sway,
+          target.bases[cursor + 1],
+          target.bases[cursor + 2] + Math.sin(phase) * sway
+        );
+        rotation.set(
+          Math.sin(time * 1.15 + phase) * 0.055 * strength,
+          target.bases[cursor + 6],
+          Math.cos(time * 1.35 + phase) * 0.055 * strength
+        );
+        quaternion.setFromEuler(rotation);
+        scale.set(target.bases[cursor + 3], target.bases[cursor + 4], target.bases[cursor + 5]);
+        matrix.compose(position, quaternion, scale);
+        target.mesh.setMatrixAt(i, matrix);
+      }
+      target.mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
+    let hits = 0;
+    for (const collider of this.colliders) {
+      if (resolveCircleCollision(position, collider, actorRadius)) {
+        hits += 1;
+      }
+    }
+    return hits;
   }
 
   private buildTerrain(params: TerrainChunkParams): THREE.Mesh {

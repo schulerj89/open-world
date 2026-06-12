@@ -22,10 +22,12 @@ It reports:
 - Yaw and pitch.
 - Speed, grounded state, pointer mode.
 - Tree trunk and crown-part counts.
+- Recent collision hits and visible tree blocker count.
 - Grass card count.
 - WebGPU support, adapter availability, core/compat signal, preferred canvas format, feature count, and adapter limits.
 - Render calls, rendered triangles, geometry count, and texture count.
 - The WebGPU path can expose cumulative or zeroed renderer counters depending on backend behavior, so the HUD falls back to visible-scene estimates for draw calls and triangles when native counters are misleading.
+- RAF interval, renderer submit time, simulation time, streaming time, HUD update time, and page visibility.
 
 ## Tree Rendering Debug
 
@@ -74,6 +76,20 @@ The third-person/higher-detail pass was tested only through visible Chrome, with
 - Jump is now edge-triggered on `Space` and `J`; final visible screenshot showed Y at `9.1`, speed `5.8`, and grounded `no`.
 - `8 Slimes`, `Tab`, and repeated `1` strikes defeated a slime and awarded `6g`.
 - `9 Equip` swapped outfit colors/gear.
+- `0 Collide` placed the player against a cottage blocker; debug showed `Collision 1 hits / 74 tree blockers` and the resolver pushed the player to the edge of the blocker.
 - `M`/Menu returned to the title screen.
 
-The visible Chrome session still reported about `21-24 FPS` even after the adaptive budget collapsed to a small horizon and render calls dropped near `50`. A WebGL override (`?renderer=webgl`) showed the same range, so this was documented as an environment/browser-session observation rather than a WebGPU-only renderer issue.
+The first third-person visible Chrome session reported about `21-24 FPS` even after the adaptive budget collapsed to a small horizon and render calls dropped near `50`. A WebGL override (`?renderer=webgl`) showed the same range, so additional debug timing was added instead of treating the single FPS number as enough evidence.
+
+## Animation And Compositor Follow-Up
+
+A later visible Chrome run on `127.0.0.1:4200` removed gameplay `backdrop-filter` blur from the HUD/buttons and added timing rows to separate browser RAF cadence from app work.
+
+- Final HUD reported `60 FPS` and `16.7 ms` frame time.
+- Timing showed RAF around `16.6 ms`, render submit around `1.4-1.9 ms`, sim around `0.0-0.2 ms`, stream around `0.0-0.2 ms`, HUD around `0.0 ms`, and page visibility `visible`.
+- Debug reported WebGPU adapter ready, core mode, `bgra8unorm`, Nvidia/Ampere metadata, and `16384px texture`.
+- Town view reported about `418 calls / 65,690 estimated tris` while holding 60 FPS.
+- Static-camera screenshot comparisons proved ambient animation while holding 60 FPS:
+  - Town/tree/NPC view changed by `135,660` PNG bytes over 1.8 seconds.
+  - Slime view changed by `147,211` PNG bytes over 1.2 seconds.
+- Collision verification on `127.0.0.1:4202` held `60 FPS` while resolving the cottage collision probe.

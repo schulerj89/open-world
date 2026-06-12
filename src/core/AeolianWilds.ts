@@ -8,6 +8,7 @@ import { createTutorialQuest, getTutorialInstruction, recordTutorialKill, type T
 import { createRenderer, configureRenderer, type WebGpuDebugInfo } from "../render/RendererFactory";
 import { Overlay } from "../ui/Overlay";
 import { createMeadowSlimeModel } from "../world/CreatureModels.js";
+import { resolveCircleCollision } from "../world/Collision.js";
 import { createHumanoidModel } from "../world/HumanoidModel.js";
 import { createSky } from "../world/Sky";
 import { StarterTown } from "../world/StarterTown.js";
@@ -57,12 +58,22 @@ export class AeolianWilds {
   private quest: TutorialQuestState = createTutorialQuest();
   private readonly enemies: EnemyActor[] = [];
   private selectedEnemyId = "";
+  private lastCollisionHits = 0;
+  private collisionDisplayFrames = 0;
   private lastMessage = "Create a character and enter Briar Glen.";
   private mode: Mode = "title";
   private modeBeforeSettings: Mode = "title";
   private animationId = 0;
   private appliedPixelRatio = 0;
   private lastHudUpdate = Number.NEGATIVE_INFINITY;
+  private lastTiming: Parameters<Overlay["updateHud"]>[7] = {
+    rafMs: 16.7,
+    updateMs: 0,
+    streamMs: 0,
+    renderMs: 0,
+    hudMs: 0,
+    visibility: "visible"
+  };
 
   constructor(host: HTMLElement) {
     this.overlay = new Overlay(host, this.settings, {
@@ -178,27 +189,39 @@ export class AeolianWilds {
 
   private loop = (): void => {
     this.animationId = requestAnimationFrame(this.loop);
-    const delta = Math.min(0.05, this.clock.getDelta());
+    const frameStart = performance.now();
+    const rawDelta = this.clock.getDelta();
+    const delta = Math.min(0.05, rawDelta);
     const elapsed = this.clock.elapsedTime;
     const wind = 0.45 + Math.sin(elapsed * 0.21) * 0.18 + Math.sin(elapsed * 0.73) * 0.08;
     this.adaptiveBudget.update(this.performance.getFrameMs());
     const runtimeSettings = this.adaptiveBudget.derive(this.settings);
 
+    const updateStart = performance.now();
     if (this.mode === "playing" && this.controls) {
       this.handleGameplayActions(this.controls.consumeActions());
-      this.player.update(delta, this.controls, this.streamer.terrain, this.playerAvatar);
+      this.player.update(delta, this.controls, this.streamer.terrain, this.playerAvatar, (position, radius) =>
+        this.resolvePlayerCollisions(position, radius)
+      );
+      this.animateTown(elapsed);
       this.updateEnemies(elapsed);
     } else {
       this.player.setTitleOrbit(elapsed, 138, this.streamer.terrain);
+      this.animateTown(elapsed);
     }
+    const updateMs = performance.now() - updateStart;
 
+    const streamStart = performance.now();
     this.streamer.update(this.camera.position, runtimeSettings, this.performance.getFrameMs());
     this.streamer.animateWind(elapsed, wind);
+    const streamMs = performance.now() - streamStart;
     this.sound.setIntensity(wind);
-    this.performance.update(delta);
+    this.performance.update(rawDelta);
     this.applyResolutionScale(runtimeSettings.resolutionScale);
+    let hudMs = 0;
     if (elapsed - this.lastHudUpdate >= 0.125) {
       this.lastHudUpdate = elapsed;
+      const hudStart = performance.now();
       this.overlay.updateHud(
         this.performance.getFps(),
         this.performance.getFrameMs(),
@@ -207,18 +230,31 @@ export class AeolianWilds {
         {
           ...this.player.getDebugState(),
           pointerLocked: this.controls?.state.pointerLocked ?? false,
-          dragLook: this.controls?.state.dragLook ?? false
+          dragLook: this.controls?.state.dragLook ?? false,
+          collisionHits: this.lastCollisionHits
         },
         this.gpuDebug,
-        this.getRenderDebugState()
+        this.getRenderDebugState(),
+        this.lastTiming
       );
       if (this.mode === "playing") {
         this.overlay.updateGameHud(this.getGameHudState());
       }
+      hudMs = performance.now() - hudStart;
     }
 
     this.renderer?.info.reset();
+    const renderStart = performance.now();
     this.renderer?.render(this.scene, this.camera);
+    const renderMs = performance.now() - renderStart;
+    this.lastTiming = {
+      rafMs: rawDelta * 1000,
+      updateMs,
+      streamMs,
+      renderMs,
+      hudMs,
+      visibility: document.visibilityState
+    };
   };
 
   private readonly resize = (): void => {
@@ -306,6 +342,10 @@ export class AeolianWilds {
       this.runDebugAction("equip");
     }
 
+    if (actions.warpCollision) {
+      this.runDebugAction("collide");
+    }
+
     if (actions.jump) {
       this.player.requestJump();
     }
@@ -330,7 +370,7 @@ export class AeolianWilds {
     this.lastMessage = visible ? "Debug panel enabled. Use 7 town, 8 slimes, 9 equip, M menu." : "Debug panel hidden.";
   }
 
-  private runDebugAction(action: "town" | "slimes" | "equip"): void {
+  private runDebugAction(action: "town" | "slimes" | "equip" | "collide"): void {
     if (action === "town" && this.town) {
       this.player.teleportTo(this.town.playerSpawn.x, this.town.playerSpawn.z, this.streamer.terrain, this.town.playerSpawn.yaw, this.playerAvatar);
       this.lastMessage = "Debug warp: returned to Briar Glen.";
@@ -347,6 +387,9 @@ export class AeolianWilds {
       };
       this.rebuildPlayerAvatar();
       this.lastMessage = "Debug equip: swapped outfit colors and gear.";
+    } else if (action === "collide" && this.town) {
+      this.player.teleportTo(-15, -10, this.streamer.terrain, -Math.PI / 2, this.playerAvatar);
+      this.lastMessage = "Debug collision: placed against a cottage blocker.";
     }
   }
 
@@ -408,8 +451,11 @@ export class AeolianWilds {
     this.enemies.forEach((actor, index) => {
       const height = this.streamer.terrain.getHeight(actor.spawn.x, actor.spawn.z);
       const selected = actor.enemy.id === this.selectedEnemyId;
-      actor.mesh.position.set(actor.spawn.x, height + Math.sin(elapsed * 2 + index) * 0.12, actor.spawn.z);
-      actor.mesh.rotation.y += 0.012 + index * 0.002;
+      const bounce = Math.sin(elapsed * 3.2 + index * 0.9);
+      const hpScale = actor.enemy.alive ? 0.75 + (actor.enemy.hp / actor.enemy.maxHp) * 0.25 : 0.75;
+      actor.mesh.position.set(actor.spawn.x, height + 0.12 + Math.abs(bounce) * 0.22, actor.spawn.z);
+      actor.mesh.scale.set(hpScale * (1.04 - Math.abs(bounce) * 0.05), hpScale * (0.95 + Math.abs(bounce) * 0.12), hpScale);
+      actor.mesh.rotation.y += 0.018 + index * 0.003;
       if (selected) {
         this.selectionRing.visible = true;
         this.selectionRing.position.set(actor.spawn.x, height + 0.12, actor.spawn.z);
@@ -422,6 +468,51 @@ export class AeolianWilds {
 
   private getSelectedEnemy(): EnemyActor | undefined {
     return this.enemies.find((actor) => actor.enemy.id === this.selectedEnemyId && actor.enemy.alive);
+  }
+
+  private resolvePlayerCollisions(position: THREE.Vector3, actorRadius: number): void {
+    let hits = this.streamer.resolveCollision(position, actorRadius);
+
+    if (this.town) {
+      for (const collider of this.town.colliders) {
+        if (resolveCircleCollision(position, collider, actorRadius)) {
+          hits += 1;
+        }
+      }
+    }
+
+    for (const actor of this.enemies) {
+      if (!actor.enemy.alive) {
+        continue;
+      }
+
+      if (resolveCircleCollision(position, { x: actor.spawn.x, z: actor.spawn.z, radius: 1.75, kind: "enemy" }, actorRadius)) {
+        hits += 1;
+      }
+    }
+
+    if (hits > 0) {
+      this.lastCollisionHits = hits;
+      this.collisionDisplayFrames = 24;
+    } else if (this.collisionDisplayFrames > 0) {
+      this.collisionDisplayFrames -= 1;
+    } else {
+      this.lastCollisionHits = 0;
+    }
+  }
+
+  private animateTown(elapsed: number): void {
+    this.town?.group.traverse((object) => {
+      if (!object.userData.idleNpc) {
+        return;
+      }
+
+      const phase = Number(object.userData.phase) || 0;
+      const baseY = Number(object.userData.baseY) || object.position.y;
+      const baseYaw = Number(object.userData.baseYaw) || object.rotation.y;
+      object.position.y = baseY + Math.sin(elapsed * 2.1 + phase) * 0.035;
+      object.rotation.y = baseYaw + Math.sin(elapsed * 0.85 + phase) * 0.18;
+    });
   }
 
   private getGameHudState(): Parameters<Overlay["updateGameHud"]>[0] {

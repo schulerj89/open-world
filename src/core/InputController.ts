@@ -25,6 +25,7 @@ export type InputActions = {
   equipDebug: boolean;
   backToMenu: boolean;
   jump: boolean;
+  warpCollision: boolean;
 };
 
 export class InputController {
@@ -86,7 +87,8 @@ export class InputController {
       warpSlimes: this.actions.has("warpSlimes"),
       equipDebug: this.actions.has("equipDebug"),
       backToMenu: this.actions.has("backToMenu"),
-      jump: this.actions.has("jump")
+      jump: this.actions.has("jump"),
+      warpCollision: this.actions.has("warpCollision")
     };
     this.actions.clear();
     return actions;
@@ -234,6 +236,9 @@ export class InputController {
       case "Digit9":
         this.actions.add("equipDebug");
         break;
+      case "Digit0":
+        this.actions.add("warpCollision");
+        break;
       case "KeyM":
         this.actions.add("backToMenu");
         break;
@@ -290,6 +295,8 @@ export class InputController {
         return "Digit8";
       case "9":
         return "Digit9";
+      case "0":
+        return "Digit0";
       case "m":
       case "M":
         return "KeyM";
@@ -327,6 +334,7 @@ export class InputController {
       "Digit7",
       "Digit8",
       "Digit9",
+      "Digit0",
       "KeyM"
     ].includes(code);
   }

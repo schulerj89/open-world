@@ -76,4 +76,5 @@ As of June 12, 2026, those fields follow the MDN WebGPU capability model: detect
 - Rivers were removed from terrain carving and chunk mesh generation. This frees per-chunk geometry and shader work for higher-poly land, town, characters, trees, and enemies.
 - WebGPU MSAA stays disabled. A visible Chrome pass on the higher-poly build showed 4x MSAA pushed the frame well under the 60 FPS target, so resolution scale and adaptive budget remain the active quality controls.
 - The debug HUD estimates draw calls and triangles from visible scene geometry when WebGPU renderer counters are zero or cumulative.
-- The next custom shader should be a Three TSL/node-material wind path for grass and tree crowns. Three's WebGPU renderer can target WebGPU first and fall back to WebGL2, so raw GLSL-only `ShaderMaterial` should remain avoided for this project.
+- Tree crowns now sway through CPU-updated instanced matrices while trunks remain fixed to the terrain. This was chosen for immediate visual verification and browser compatibility.
+- The next custom shader should be a Three TSL/node-material wind path for grass and tree crowns so the CPU-side matrix update can be replaced with GPU vertex displacement. Three's WebGPU renderer can target WebGPU first and fall back to WebGL2, so raw GLSL-only `ShaderMaterial` should remain avoided for this project.

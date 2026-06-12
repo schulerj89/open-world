@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { InputController } from "./InputController";
 import type { HeightSampler } from "../world/HeightSampler";
 
+export type CollisionResolver = (position: THREE.Vector3, actorRadius: number) => void;
+
 export class ThirdPersonController {
   readonly camera: THREE.PerspectiveCamera;
   readonly velocity = new THREE.Vector3();
@@ -13,13 +15,14 @@ export class ThirdPersonController {
   private pitch = 0.28;
   private grounded = false;
   private jumpRequested = false;
+  private walkCycle = 0;
 
   constructor(camera: THREE.PerspectiveCamera) {
     this.camera = camera;
     this.camera.rotation.order = "YXZ";
   }
 
-  update(delta: number, input: InputController, heights: HeightSampler, avatar?: THREE.Object3D): void {
+  update(delta: number, input: InputController, heights: HeightSampler, avatar?: THREE.Object3D, resolveCollision?: CollisionResolver): void {
     const mouse = input.consumeMouse();
     if (input.state.pointerLocked) {
       this.yaw -= mouse.dx * 0.0022;
@@ -60,6 +63,7 @@ export class ThirdPersonController {
 
     this.velocity.y -= 27 * delta;
     this.position.addScaledVector(this.velocity, delta);
+    resolveCollision?.(this.position, 0.72);
     const floorY = heights.getHeight(this.position.x, this.position.z);
     const actorY = floorY + 0.08;
     if (this.position.y < actorY) {
@@ -70,6 +74,11 @@ export class ThirdPersonController {
 
     if (avatar) {
       avatar.position.copy(this.position);
+      const horizontalSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+      if (this.grounded && horizontalSpeed > 0.2) {
+        this.walkCycle += horizontalSpeed * delta;
+        avatar.position.y += Math.sin(this.walkCycle * 5.4) * 0.055;
+      }
     }
 
     this.updateCamera(delta, heights);

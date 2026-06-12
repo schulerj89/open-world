@@ -19,6 +19,7 @@ export type PlayerDebugState = {
   pitch: number;
   pointerLocked: boolean;
   dragLook: boolean;
+  collisionHits: number;
 };
 
 export type GameHudState = {
@@ -45,6 +46,15 @@ export type RenderDebugState = {
   textures: number;
 };
 
+export type FrameTimingState = {
+  rafMs: number;
+  updateMs: number;
+  streamMs: number;
+  renderMs: number;
+  hudMs: number;
+  visibility: string;
+};
+
 type OverlayEvents = {
   onStart: (draft: CharacterDraft) => void;
   onOpenSettings: () => void;
@@ -52,7 +62,7 @@ type OverlayEvents = {
   onPerformanceChange: (preset: PerformancePresetKey, memoryBudgetMb: number) => void;
   onToggleDebug: () => void;
   onBackToMenu: () => void;
-  onDebugAction: (action: "town" | "slimes" | "equip") => void;
+  onDebugAction: (action: "town" | "slimes" | "equip" | "collide") => void;
 };
 
 export class Overlay {
@@ -110,6 +120,7 @@ export class Overlay {
     this.root.querySelector<HTMLButtonElement>("[data-warp-town]")?.addEventListener("click", () => events.onDebugAction("town"));
     this.root.querySelector<HTMLButtonElement>("[data-warp-slimes]")?.addEventListener("click", () => events.onDebugAction("slimes"));
     this.root.querySelector<HTMLButtonElement>("[data-equip-debug]")?.addEventListener("click", () => events.onDebugAction("equip"));
+    this.root.querySelector<HTMLButtonElement>("[data-collision-debug]")?.addEventListener("click", () => events.onDebugAction("collide"));
     this.root.querySelectorAll<HTMLSelectElement>("[data-performance-control]").forEach((select) => {
       select.addEventListener("change", () => {
         const preset = this.readPresetKey();
@@ -185,7 +196,8 @@ export class Overlay {
     wind: number,
     player: PlayerDebugState,
     gpu: WebGpuDebugInfo,
-    render: RenderDebugState
+    render: RenderDebugState,
+    timing: FrameTimingState
   ): void {
     const memoryPercent = stats.memoryBudgetMb > 0 ? Math.min(100, (stats.estimatedMb / stats.memoryBudgetMb) * 100) : 0;
     const gpuMode = gpu.supported ? (gpu.adapterAvailable ? "adapter ready" : "no adapter") : "unsupported";
@@ -212,10 +224,14 @@ export class Overlay {
       <div class="metric-row"><span>Speed</span><span>${player.speed.toFixed(1)} u/s</span></div>
       <div class="metric-row"><span>Grounded</span><span>${player.grounded ? "yes" : "no"}</span></div>
       <div class="metric-row"><span>Pointer</span><span>${player.pointerLocked ? "locked" : player.dragLook ? "drag" : "free"}</span></div>
+      <div class="metric-row" data-debug-collision><span>Collision</span><span>${player.collisionHits} hits / ${stats.colliders} tree blockers</span></div>
       <div class="metric-row" data-debug-trees><span>Trees</span><span>${stats.trunks} trunks / ${stats.coniferCrowns * 3 + stats.broadleafCrowns} crown parts</span></div>
       <div class="metric-row"><span>Grass cards</span><span>${stats.grassInstances}</span></div>
       <div class="metric-row" data-debug-render><span>Render</span><span>${render.calls} calls / ${render.triangles.toLocaleString()}${render.estimatedTriangles ? " est." : ""} tris</span></div>
       <div class="metric-row"><span>GPU memory</span><span>${render.geometries} geos / ${render.textures} tex</span></div>
+      <div class="metric-row" data-debug-timing><span>Timing</span><span>RAF ${timing.rafMs.toFixed(1)} / render ${timing.renderMs.toFixed(1)} ms</span></div>
+      <div class="metric-row"><span>CPU work</span><span>sim ${timing.updateMs.toFixed(1)} / stream ${timing.streamMs.toFixed(1)} / hud ${timing.hudMs.toFixed(1)} ms</span></div>
+      <div class="metric-row"><span>Page</span><span>${timing.visibility}</span></div>
       <div class="metric-row" data-debug-gpu><span>GPU</span><span>${gpuLabel}</span></div>
       <div class="metric-row"><span>Adapter</span><span>${gpuAdapter}</span></div>
       <div class="metric-row"><span>WebGPU limits</span><span>${gpu.limits?.maxBindGroups ?? 0} bind groups / ${gpu.limits?.maxSampledTexturesPerShaderStage ?? 0} sampled tex</span></div>
@@ -346,6 +362,7 @@ export class Overlay {
         <button type="button" data-warp-town>7 Town</button>
         <button type="button" data-warp-slimes>8 Slimes</button>
         <button type="button" data-equip-debug>9 Equip</button>
+        <button type="button" data-collision-debug>0 Collide</button>
         <button type="button" data-back-menu>Menu</button>
       </div>
       <div class="hud" data-hud></div>

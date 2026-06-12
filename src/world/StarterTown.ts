@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { CircleCollider } from "./Collision.js";
 import type { HeightSampler } from "./HeightSampler.js";
 import { createHumanoidModel } from "./HumanoidModel.js";
 
@@ -9,6 +10,7 @@ export type EnemySpawn = {
 
 export class StarterTown {
   readonly group = new THREE.Group();
+  readonly colliders: CircleCollider[] = [];
   readonly playerSpawn = { x: -8, z: 10, yaw: -0.55 };
   readonly guidePosition = { x: -2, z: 2 };
   readonly npcPositions = [
@@ -66,6 +68,7 @@ export class StarterTown {
   }
 
   private addCottage(x: number, z: number, yaw: number): void {
+    this.addCollider(x, z, 5.6, "building");
     const base = new THREE.Mesh(new THREE.BoxGeometry(8, 5, 7, 2, 2, 2), this.cottageMaterial);
     base.position.set(x, this.getHeight(x, z) + 2.5, z);
     base.rotation.y = yaw;
@@ -117,6 +120,7 @@ export class StarterTown {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.4, 12), this.roofMaterial);
       post.position.set(px, this.getHeight(px, z) + 1.7, z);
       this.group.add(post);
+      this.addCollider(px, z, 0.8, "prop");
     }
   }
 
@@ -127,6 +131,7 @@ export class StarterTown {
     const statueBase = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.3, 1.2, 16), this.stoneMaterial);
     statueBase.position.set(0, this.getHeight(0, 0) + 0.7, 0);
     this.group.add(statueBase);
+    this.addCollider(0, 0, 2.3, "prop");
     const crystal = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 2), this.markerMaterial);
     crystal.position.set(0, this.getHeight(0, 0) + 2.35, 0);
     this.group.add(crystal);
@@ -137,6 +142,7 @@ export class StarterTown {
       const stall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.3, 2.2, 2, 1, 1), this.cottageMaterial);
       stall.position.set(x + offset, this.getHeight(x + offset, z) + 0.65, z);
       this.group.add(stall);
+      this.addCollider(x + offset, z, 2.0, "prop");
       const awning = new THREE.Mesh(new THREE.ConeGeometry(2.4, 1.1, 4), index % 2 === 0 ? this.trimMaterial : this.markerMaterial);
       awning.position.set(x + offset, this.getHeight(x + offset, z) + 2.1, z);
       awning.rotation.y = Math.PI * 0.25;
@@ -155,7 +161,12 @@ export class StarterTown {
       model.position.set(npc.x, this.getHeight(npc.x, npc.z) + 0.08, npc.z);
       model.rotation.y = npc.yaw;
       model.name = `starter-town-npc-${index}`;
+      model.userData.idleNpc = true;
+      model.userData.baseY = model.position.y;
+      model.userData.baseYaw = npc.yaw;
+      model.userData.phase = index * 1.7;
       this.group.add(model);
+      this.addCollider(npc.x, npc.z, 0.95, "npc");
     });
   }
 
@@ -171,6 +182,7 @@ export class StarterTown {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 4.2, 10), this.roofMaterial);
       post.position.set(x, this.getHeight(x, z) + 2.1, z);
       this.group.add(post);
+      this.addCollider(x, z, 0.45, "prop");
       const lamp = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), this.lightMaterial);
       lamp.position.set(x, this.getHeight(x, z) + 4.35, z);
       this.group.add(lamp);
@@ -194,5 +206,15 @@ export class StarterTown {
     rail.position.set(x, this.getHeight(x, z) + 1.1, z);
     rail.rotation.y = yaw;
     this.group.add(rail);
+
+    const samples = Math.max(2, Math.ceil(length / 4));
+    for (let i = 0; i <= samples; i += 1) {
+      const t = i / samples;
+      this.addCollider(THREE.MathUtils.lerp(x1, x2, t), THREE.MathUtils.lerp(z1, z2, t), 0.55, "fence");
+    }
+  }
+
+  private addCollider(x: number, z: number, radius: number, kind: CircleCollider["kind"]): void {
+    this.colliders.push({ x, z, radius, kind });
   }
 }

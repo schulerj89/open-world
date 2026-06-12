@@ -25,6 +25,7 @@ export type StreamStats = {
   trunks: number;
   coniferCrowns: number;
   broadleafCrowns: number;
+  colliders: number;
 };
 
 export class WorldStreamer {
@@ -84,6 +85,11 @@ export class WorldStreamer {
 
   animateWind(time: number, strength: number): void {
     updateGrassWindMaterials(time, strength);
+    for (const chunk of this.chunks.values()) {
+      if (chunk.group.visible) {
+        chunk.animateWind(time, strength);
+      }
+    }
   }
 
   getStats(): StreamStats {
@@ -94,6 +100,7 @@ export class WorldStreamer {
     let trunks = 0;
     let coniferCrowns = 0;
     let broadleafCrowns = 0;
+    let colliders = 0;
 
     for (const chunk of this.chunks.values()) {
       if (!chunk.group.visible) {
@@ -111,6 +118,7 @@ export class WorldStreamer {
       trunks += chunk.natureStats.trunks;
       coniferCrowns += chunk.natureStats.coniferCrowns;
       broadleafCrowns += chunk.natureStats.broadleafCrowns;
+      colliders += chunk.colliders.length;
     }
 
     return {
@@ -126,8 +134,19 @@ export class WorldStreamer {
       grassInstances,
       trunks,
       coniferCrowns,
-      broadleafCrowns
+      broadleafCrowns,
+      colliders
     };
+  }
+
+  resolveCollision(position: { x: number; z: number }, actorRadius: number): number {
+    let hits = 0;
+    for (const chunk of this.chunks.values()) {
+      if (chunk.group.visible) {
+        hits += chunk.resolveCollision(position, actorRadius);
+      }
+    }
+    return hits;
   }
 
   dispose(): void {
