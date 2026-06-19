@@ -114,6 +114,11 @@ h1 {
   pointer-events: none;
 }
 
+#title-screen:not(.hidden) ~ #hud {
+  opacity: 0;
+  visibility: hidden;
+}
+
 #debug {
   position: absolute;
   top: 12px;

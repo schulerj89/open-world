@@ -1,6 +1,6 @@
 # Aeolian Wilds
 
-Version `1.2.0` is an endless procedural low-poly Three.js world with denser terrain, weather, improved Phong water shimmer, a three-beacon objective loop, RPG music, and third-person exploration.
+Version `1.3.0` is an endless procedural low-poly Three.js world with procedural hamlets, settlement repair contracts, denser terrain, weather, improved Phong water shimmer, upbeat chiptune music, and third-person exploration.
 
 ## Run
 
@@ -28,11 +28,11 @@ npm run test:smoke
 npm run capture:screenshots
 ```
 
-The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, render scale, resource counts, heap usage when Chromium exposes it, terrain/environment/water memory estimates, current weather, objective progress, player coordinates, biome, terrain height, and water-blocking counts.
+The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, render scale, resource counts, heap usage when Chromium exposes it, terrain/environment/water/settlement memory estimates, current weather, settlement contract progress, objective progress, player coordinates, biome, terrain height, and water-blocking counts.
 
-Versioned screenshots are written under `artifacts/screenshots/v1.2.0`.
+Versioned screenshots are written under `artifacts/screenshots/v1.3.0`.
 
 ## Music
 
-Title music is `The Field Of Dreams` by pauliuw from OpenGameArt, licensed CC0:
-https://opengameart.org/content/the-field-of-dreams
+Title music is `Happy Adventure (Loop)` by TinyWorlds from OpenGameArt, licensed CC0:
+https://opengameart.org/content/happy-adventure-loop

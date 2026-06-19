@@ -30,6 +30,7 @@ Biome colors are blended per vertex from elevation and moisture:
 
 - `FoliageSystem`: deterministic clustered tree and bush placements rendered through `InstancedMesh`.
 - `EnvironmentSystem`: deterministic instanced rocks, flowers, waystones, crystals, and ruin fragments for biome-scale exploration hooks.
+- `SettlementSystem`: deterministic procedural hamlets, low-poly building modules, local repair contracts, collectible resource nodes, and completed-town repair markers.
 - `WaterSystem`: recentered sea-level `MeshPhongMaterial` plane sized under the loaded terrain footprint, with a scrolling procedural normal map for light-based shimmer.
 - `WeatherSystem`: deterministic clear/cloudy/rain/snow selection from world coordinates, with camera-relative rain lines and snow points plus weather-driven fog and lighting.
 - `ObjectiveSystem`: three deterministic weather beacons placed on playable terrain around the start area.
@@ -39,5 +40,5 @@ Biome colors are blended per vertex from elevation and moisture:
 
 ## Instrumentation
 
-`window.__OPEN_WORLD_DEBUG__.getSnapshot()` returns FPS, frame time, chunk counts, foliage counts, environmental detail counts, water stats, weather state, objective state, renderer calls, triangles, render scale, geometry/texture counts, heap usage when available, player position, biome, terrain height, and sea level.
+`window.__OPEN_WORLD_DEBUG__.getSnapshot()` returns FPS, frame time, chunk counts, foliage counts, environmental detail counts, settlement and contract stats, water stats, weather state, objective state, renderer calls, triangles, render scale, geometry/texture counts, heap usage when available, player position, biome, terrain height, and sea level.
 It also reports per-frame chunk build time and an app-owned terrain geometry byte estimate because `renderer.info` is useful trend data, not a complete memory report.

@@ -20,32 +20,60 @@ try {
   await page.waitForTimeout(2200);
   await page.screenshot({ path: path.join(outDir, '02-world-debug.png'), fullPage: true });
 
+  const settlementTarget = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSettlementTarget());
+  await page.evaluate((target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x, target.z), settlementTarget);
+  await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.active ?? false) === true);
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(outDir, '03-settlement-arrival.png'), fullPage: true });
+
+  const firstResource = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getContractTarget());
+  await page.evaluate(
+    (target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x + 13, target.z + 6),
+    firstResource
+  );
+  await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().queuedChunks ?? 1) === 0);
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: path.join(outDir, '04-contract-target.png'), fullPage: true });
+
+  for (let collected = 0; collected < 3; collected += 1) {
+    const resource = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getContractTarget());
+    await page.evaluate((target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x, target.z), resource);
+    await page.waitForFunction(
+      (minimum) => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.collected ?? 0) > minimum,
+      collected
+    );
+  }
+  await page.evaluate((target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x, target.z), settlementTarget);
+  await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.completedContracts ?? 0) > 0);
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: path.join(outDir, '05-settlement-complete.png'), fullPage: true });
+
   await moveToBest(page, 'grassland');
-  await page.screenshot({ path: path.join(outDir, '03-streamed-biome.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '06-streamed-biome.png'), fullPage: true });
 
   await moveToBest(page, 'shore');
-  await page.screenshot({ path: path.join(outDir, '04-shoreline-detail.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '07-shoreline-detail.png'), fullPage: true });
 
   await moveToBest(page, 'forest');
-  await page.screenshot({ path: path.join(outDir, '05-forest-detail.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '08-forest-detail.png'), fullPage: true });
 
   await moveToBest(page, 'rock');
-  await page.screenshot({ path: path.join(outDir, '06-rocky-slope-detail.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '09-rocky-slope-detail.png'), fullPage: true });
 
   await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('rain'));
   await page.waitForTimeout(1000);
-  await page.screenshot({ path: path.join(outDir, '07-rain-weather.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '10-rain-weather.png'), fullPage: true });
 
   await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('snow'));
   await moveToBest(page, 'snow');
-  await page.screenshot({ path: path.join(outDir, '08-snow-weather.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '11-snow-weather.png'), fullPage: true });
 
   await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('clear'));
   const objectiveTarget = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getObjectiveTarget());
   await page.evaluate((target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x, target.z), objectiveTarget);
   await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().objective.completed ?? 0) > 0);
   await page.waitForTimeout(800);
-  await page.screenshot({ path: path.join(outDir, '09-objective-beacon.png'), fullPage: true });
+  await page.screenshot({ path: path.join(outDir, '12-objective-beacon.png'), fullPage: true });
 
   await page.waitForTimeout(4500);
   const metrics = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSnapshot());

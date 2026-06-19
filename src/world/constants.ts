@@ -1,7 +1,7 @@
 export const CHUNK_SIZE = 64;
-export const CHUNK_SEGMENTS = 24;
+export const CHUNK_SEGMENTS = 32;
 export const TERRAIN_RADIUS = 4;
-export const CHUNK_BUILD_BUDGET_MS = 7.5;
+export const CHUNK_BUILD_BUDGET_MS = 8.5;
 export const SEA_LEVEL = 0;
 export const WATER_BLOCK_MARGIN = 1.1;
 export const FOG_COLOR = 0xcfe3e3;
@@ -13,4 +13,6 @@ export const MAX_BUSH_INSTANCES = 1300;
 export const MAX_ROCK_INSTANCES = 2400;
 export const MAX_FLOWER_INSTANCES = 3600;
 export const MAX_LANDMARK_INSTANCES = 640;
-export const MUSIC_URL = 'https://opengameart.org/sites/default/files/the_field_of_dreams.mp3';
+export const MAX_SETTLEMENT_BUILDINGS = 900;
+export const MAX_SETTLEMENT_PROPS = 700;
+export const MUSIC_URL = 'https://opengameart.org/sites/default/files/happy_adveture.mp3';

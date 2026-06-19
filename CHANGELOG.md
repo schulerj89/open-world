@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 - 2026-06-19
+
+### Minor
+
+- Added procedural hamlets with deterministic low-poly buildings, wells, signs, and completed repair markers.
+- Added the `Stabilize Hamlet` contract loop: enter a hamlet, collect three nearby local resources, then return to complete the repair.
+- Added settlement debug stats and smoke-test hooks for nearest town targets and active contract targets.
+- Raised terrain density from 24 to 32 segments per chunk while keeping the terrain radius fixed.
+- Swapped title music to the CC0 upbeat chiptune track `Happy Adventure (Loop)` by TinyWorlds.
+- Added v1.3.0 settlement contract direction documentation.
+- Expanded smoke coverage and screenshot capture for settlement arrival, contract target, and repaired settlement states.
+
 ## 1.2.0 - 2026-06-19
 
 ### Minor

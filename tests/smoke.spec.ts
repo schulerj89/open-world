@@ -33,13 +33,16 @@ test('world boots, streams chunks, and stays inside budget contracts', async ({ 
   expect(snapshot!.weather.kind).toBeTruthy();
   expect(snapshot!.objective.total).toBe(3);
   expect(snapshot!.objective.complete).toBe(false);
-  expect(snapshot!.calls).toBeLessThan(160);
-  expect(snapshot!.triangles).toBeLessThan(190_000);
+  expect(snapshot!.settlements.towns).toBeGreaterThan(0);
+  expect(snapshot!.settlements.buildings).toBeGreaterThan(0);
+  expect(snapshot!.settlements.nearestTownDistance).toBeLessThan(180);
+  expect(snapshot!.calls).toBeLessThan(180);
+  expect(snapshot!.triangles).toBeLessThan(260_000);
   expect(snapshot!.renderScale).toBeGreaterThan(0.5);
   expect(snapshot!.renderScale).toBeLessThanOrEqual(0.65);
-  expect(snapshot!.geometries).toBeLessThan(120);
+  expect(snapshot!.geometries).toBeLessThan(140);
   expect(snapshot!.textures).toBeLessThan(14);
-  expect(snapshot!.terrainGeometryMB).toBeGreaterThan(2);
+  expect(snapshot!.terrainGeometryMB).toBeGreaterThan(3.5);
   expect(snapshot!.terrainGeometryMB).toBeLessThan(8);
   expect(snapshot!.chunkBuildMs).toBeLessThan(12);
   expect(snapshot!.fps).toBeGreaterThan(45);
@@ -58,5 +61,24 @@ test('world boots, streams chunks, and stays inside budget contracts', async ({ 
   await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().objective.completed ?? 0) > 0);
   const objectiveSnapshot = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSnapshot());
   expect(objectiveSnapshot!.objective.completed).toBeGreaterThan(0);
+
+  const town = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSettlementTarget());
+  await page.evaluate((next) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(next!.x, next!.z), town);
+  await page.waitForFunction(() => window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.active === true);
+
+  for (let collected = 0; collected < 3; collected += 1) {
+    const resource = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getContractTarget());
+    await page.evaluate((next) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(next!.x, next!.z), resource);
+    await page.waitForFunction(
+      (minimum) => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.collected ?? 0) > minimum,
+      collected
+    );
+  }
+
+  await page.evaluate((next) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(next!.x, next!.z), town);
+  await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().settlements.completedContracts ?? 0) > 0);
+  const contractSnapshot = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSnapshot());
+  expect(contractSnapshot!.settlements.completedContracts).toBeGreaterThan(0);
+  expect(contractSnapshot!.heapMB === null || contractSnapshot!.heapMB < 100).toBe(true);
   expect(errors).toEqual([]);
 });

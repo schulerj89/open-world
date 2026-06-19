@@ -4,6 +4,7 @@ import { CHUNK_SIZE, SEA_LEVEL } from '../src/world/constants';
 import { EnvironmentSystem } from '../src/world/environment';
 import { ObjectiveSystem } from '../src/world/objective';
 import { movementDirectionFromInput } from '../src/world/player';
+import { SettlementSystem } from '../src/world/settlements';
 import { WeatherSystem, weatherAt } from '../src/world/weather';
 import { biomeColorAt, heightAt, moistureAt, normalAt, sampleWorld } from '../src/world/world';
 
@@ -115,5 +116,40 @@ describe('procedural world fields', () => {
     }
 
     expect(objective.getStats(origin).complete).toBe(true);
+  });
+
+  it('generates a deterministic hamlet and completes a local repair contract', () => {
+    const origin = new THREE.Vector3(0, heightAt(0, 0), 0);
+    const first = new SettlementSystem(origin);
+    const second = new SettlementSystem(origin);
+    const chunks = [
+      { cx: 0, cz: 0 },
+      { cx: 1, cz: 0 },
+      { cx: 0, cz: 1 }
+    ];
+
+    first.sync(chunks);
+    second.sync([...chunks].reverse());
+
+    const firstTown = first.getNearestTownTarget(origin);
+    const secondTown = second.getNearestTownTarget(origin);
+    expect(firstTown.x).toBeCloseTo(secondTown.x, 5);
+    expect(firstTown.z).toBeCloseTo(secondTown.z, 5);
+
+    first.update(new THREE.Vector3(firstTown.x, firstTown.y, firstTown.z), 0);
+    let stats = first.getStats();
+    expect(stats.active).toBe(true);
+    expect(stats.required).toBe(3);
+    expect(stats.buildings).toBeGreaterThan(0);
+
+    for (let i = 0; i < stats.required; i += 1) {
+      const target = first.getContractTarget(new THREE.Vector3(firstTown.x, firstTown.y, firstTown.z));
+      first.update(new THREE.Vector3(target.x, target.y, target.z), i + 1);
+    }
+
+    first.update(new THREE.Vector3(firstTown.x, firstTown.y, firstTown.z), 10);
+    stats = first.getStats();
+    expect(stats.completedContracts).toBe(1);
+    expect(stats.active).toBe(false);
   });
 });

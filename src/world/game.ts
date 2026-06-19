@@ -13,6 +13,7 @@ import { FoliageSystem } from './foliage';
 import { InputController } from './input';
 import { ObjectiveSystem } from './objective';
 import { PlayerController } from './player';
+import { SettlementSystem } from './settlements';
 import { SkySystem } from './sky';
 import { TerrainSystem } from './terrain';
 import { WaterSystem } from './water';
@@ -49,6 +50,7 @@ interface DebugSnapshot {
   water: ReturnType<WaterSystem['getStats']>;
   weather: ReturnType<WeatherSystem['getStats']>;
   objective: ReturnType<ObjectiveSystem['getStats']>;
+  settlements: ReturnType<SettlementSystem['getStats']>;
   player: ReturnType<PlayerController['getStats']>;
   seaLevel: number;
 }
@@ -60,6 +62,8 @@ declare global {
       setPlayerPosition: (x: number, z: number) => void;
       setWeatherOverride: (mode: WeatherOverride) => void;
       getObjectiveTarget: () => { x: number; y: number; z: number };
+      getSettlementTarget: () => { x: number; y: number; z: number };
+      getContractTarget: () => { x: number; y: number; z: number };
       sampleHeight: (x: number, z: number) => number;
       sampleWorld: (x: number, z: number) => ReturnType<typeof sampleWorld>;
       version: string;
@@ -81,6 +85,7 @@ export class Game {
   private readonly clouds = new CloudSystem();
   private readonly player = new PlayerController();
   private readonly objective: ObjectiveSystem;
+  private readonly settlements: SettlementSystem;
   private readonly hemisphereLight = new THREE.HemisphereLight(0xcfefff, 0x5f5138, 1.82);
   private readonly ambientLight = new THREE.AmbientLight(0xffffff, 0.18);
   private readonly audio = new Audio(MUSIC_URL);
@@ -113,6 +118,7 @@ export class Game {
     this.audio.loop = true;
     this.audio.volume = 0.22;
     this.objective = new ObjectiveSystem(this.player.getPosition());
+    this.settlements = new SettlementSystem(this.player.getPosition());
 
     this.scene.background = new THREE.Color(FOG_COLOR);
     this.scene.fog = new THREE.Fog(FOG_COLOR, FOG_NEAR, FOG_FAR);
@@ -123,6 +129,7 @@ export class Game {
       this.terrain.group,
       this.foliage.group,
       this.environment.group,
+      this.settlements.group,
       this.objective.group,
       this.water.mesh,
       this.clouds.group,
@@ -145,6 +152,8 @@ export class Game {
         this.input.weatherOverride = this.weather.getOverride();
       },
       getObjectiveTarget: () => this.objective.getActiveTarget(),
+      getSettlementTarget: () => this.settlements.getNearestTownTarget(this.player.getPosition()),
+      getContractTarget: () => this.settlements.getContractTarget(this.player.getPosition()),
       sampleHeight: (x: number, z: number) => heightAt(x, z),
       sampleWorld: (x: number, z: number) => sampleWorld(x, z),
       version: APP_VERSION
@@ -185,6 +194,8 @@ export class Game {
     const loadedChunks = this.terrain.getLoadedChunkCoords();
     this.foliage.sync(loadedChunks);
     this.environment.sync(loadedChunks);
+    this.settlements.sync(loadedChunks);
+    this.settlements.update(playerPosition, this.elapsed);
     this.weather.setOverride(this.input.weatherOverride);
     this.weather.update(playerPosition, this.elapsed);
     const weatherVisuals = this.weather.getVisuals();
@@ -258,6 +269,7 @@ export class Game {
         `chunks ${this.snapshot.chunks} queued ${this.snapshot.queuedChunks}`,
         `trees ${this.snapshot.trees} bushes ${this.snapshot.bushes}`,
         `env ${this.snapshot.environment.total} r${this.snapshot.environment.rocks} f${this.snapshot.environment.flowers} l${this.snapshot.environment.waystones + this.snapshot.environment.crystals + this.snapshot.environment.ruins}`,
+        `towns ${this.snapshot.settlements.towns} buildings ${this.snapshot.settlements.buildings} contracts ${this.snapshot.settlements.completedContracts}`,
         `calls ${this.snapshot.calls} tris ${Math.round(this.snapshot.triangles / 1000)}k`,
         `geo ${this.snapshot.geometries} tex ${this.snapshot.textures} scale ${this.snapshot.renderScale.toFixed(2)}`,
         `heap ${this.snapshot.heapMB === null ? 'n/a' : `${this.snapshot.heapMB.toFixed(1)} MB`} terrain ${this.snapshot.terrainGeometryMB.toFixed(1)} MB env ${this.snapshot.environment.instanceMB.toFixed(2)} MB`,
@@ -266,15 +278,17 @@ export class Game {
         `chunk build ${this.snapshot.chunkBuildMs.toFixed(2)}ms`,
         `pos ${this.snapshot.player.position.x.toFixed(1)}, ${this.snapshot.player.position.z.toFixed(1)}`,
         `h ${this.snapshot.player.height.toFixed(1)} biome ${this.snapshot.player.biome}`,
+        `contract ${this.snapshot.settlements.activeTownName} ${this.snapshot.settlements.resource} ${this.snapshot.settlements.collected}/${this.snapshot.settlements.required}`,
         `objective ${this.snapshot.objective.completed}/${this.snapshot.objective.total} ${this.snapshot.objective.activeName} ${this.snapshot.objective.bearing} ${this.snapshot.objective.distance.toFixed(0)}m`,
         `water blocks ${this.snapshot.player.waterBlocked}`
       ].join('\n');
     }
     if (this.objectiveEl) {
       const objective = this.snapshot.objective;
-      this.objectiveEl.textContent = objective.complete
+      const settlementText = this.settlements.getHudText();
+      this.objectiveEl.textContent = settlementText ?? (objective.complete
         ? `${objective.title}`
-        : `${objective.title}: ${objective.activeName} ${objective.bearing} ${objective.distance.toFixed(0)}m`;
+        : `${objective.title}: ${objective.activeName} ${objective.bearing} ${objective.distance.toFixed(0)}m`);
     }
   }
 
@@ -322,6 +336,7 @@ export class Game {
       water: this.water.getStats(),
       weather: this.weather.getStats(),
       objective: this.objective.getStats(playerPosition),
+      settlements: this.settlements.getStats(),
       player: this.player.getStats(),
       seaLevel: SEA_LEVEL
     };
