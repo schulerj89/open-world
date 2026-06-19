@@ -55,11 +55,7 @@ export class PlayerController {
     const axis = input.axis();
     const moving = Math.abs(axis.x) + Math.abs(axis.z) > 0;
     const speed = axis.running ? 18 : 10.5;
-    const forward = new THREE.Vector3(Math.sin(input.yaw), 0, Math.cos(input.yaw));
-    const right = new THREE.Vector3(forward.z, 0, -forward.x);
-    const direction = new THREE.Vector3()
-      .addScaledVector(forward, -axis.z)
-      .addScaledVector(right, axis.x);
+    const direction = movementDirectionFromInput(input.yaw, axis.x, axis.z);
 
     if (direction.lengthSq() > 0) {
       direction.normalize();
@@ -151,4 +147,16 @@ function findPlayableSpawn(): { x: number; y: number; z: number } {
     }
   }
   return best;
+}
+
+export function movementDirectionFromInput(yaw: number, axisX: number, axisZ: number): THREE.Vector3 {
+  const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  const right = new THREE.Vector3(forward.z, 0, -forward.x);
+  const direction = new THREE.Vector3()
+    .addScaledVector(forward, axisZ)
+    .addScaledVector(right, axisX);
+  if (direction.lengthSq() > 0) {
+    direction.normalize();
+  }
+  return direction;
 }

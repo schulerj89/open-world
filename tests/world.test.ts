@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHUNK_SIZE, SEA_LEVEL } from '../src/world/constants';
+import { movementDirectionFromInput } from '../src/world/player';
 import { biomeColorAt, heightAt, moistureAt, normalAt, sampleWorld } from '../src/world/world';
 
 describe('procedural world fields', () => {
@@ -43,5 +44,13 @@ describe('procedural world fields', () => {
     expect(Math.abs(leftColor.r - rightColor.r)).toBeLessThan(0.000001);
     expect(Math.abs(leftColor.g - rightColor.g)).toBeLessThan(0.000001);
     expect(Math.abs(leftColor.b - rightColor.b)).toBeLessThan(0.000001);
+  });
+
+  it('maps forward input away from the chase camera direction', () => {
+    const forward = movementDirectionFromInput(0, 0, -1);
+    const backward = movementDirectionFromInput(0, 0, 1);
+
+    expect(forward.z).toBeLessThan(-0.99);
+    expect(backward.z).toBeGreaterThan(0.99);
   });
 });
