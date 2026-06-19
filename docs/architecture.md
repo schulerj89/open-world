@@ -1,0 +1,40 @@
+# Architecture
+
+## Terrain
+
+`TerrainSystem` streams a circular footprint of chunks around the player. Required chunks are sorted by distance to the player and generated until the frame budget is exhausted. Chunk meshes are disposed when they leave the keep radius.
+
+The height field is deterministic from world coordinates:
+
+- Domain-warped fBm for continents and ocean basins
+- Low-frequency masks for mountain ranges
+- Ridged multifractal peaks gated by continent and range masks
+- Billow dune layers in dry mid-elevation terrain
+- Independent low-frequency moisture for biome wetness
+- Detail octaves for small surface variation
+
+Vertex normals use neighbor height samples in world coordinates, so duplicated border vertices on adjacent chunks receive matching normals.
+
+## Biomes
+
+Biome colors are blended per vertex from elevation and moisture:
+
+- Deep water to shallow water
+- Wide shallow-water to sandy-shore band
+- Dry sand to wet grass
+- Moist forest tint
+- High rock
+- Snow caps
+
+## Runtime Systems
+
+- `FoliageSystem`: deterministic clustered tree and bush placements rendered through `InstancedMesh`.
+- `WaterSystem`: recentered sea-level plane sized under the loaded terrain footprint.
+- `SkySystem`: dithered gradient dome with fog-matched horizon haze, sun sprite, directional light, hemisphere light, and low ambient.
+- `CloudSystem`: camera-facing billboard puffs recentered around the player with per-session variation.
+- `PlayerController`: low-poly character movement, animation, terrain following, and water rejection.
+
+## Instrumentation
+
+`window.__OPEN_WORLD_DEBUG__.getSnapshot()` returns FPS, frame time, chunk counts, foliage counts, renderer calls, triangles, geometry/texture counts, heap usage when available, player position, biome, terrain height, and sea level.
+It also reports per-frame chunk build time and an app-owned terrain geometry byte estimate because `renderer.info` is useful trend data, not a complete memory report.

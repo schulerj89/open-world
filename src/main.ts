@@ -1,12 +1,10 @@
-import "./styles.css";
-import { AeolianWilds } from "./core/AeolianWilds";
+import './styles.css';
+import { Game } from './world/game';
 
-const root = document.querySelector<HTMLDivElement>("#app");
-
-if (!root) {
-  throw new Error("Missing #app root");
+const canvas = document.querySelector<HTMLCanvasElement>('#world');
+if (!canvas) {
+  throw new Error('Missing #world canvas');
 }
 
-const app = new AeolianWilds(root);
-void app.start();
-
+const game = new Game(canvas);
+game.start();

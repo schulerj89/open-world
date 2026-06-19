@@ -1,0 +1,13 @@
+export const CHUNK_SIZE = 64;
+export const CHUNK_SEGMENTS = 12;
+export const TERRAIN_RADIUS = 4;
+export const CHUNK_BUILD_BUDGET_MS = 4.8;
+export const SEA_LEVEL = 0;
+export const WATER_BLOCK_MARGIN = 1.1;
+export const FOG_COLOR = 0xcfe3e3;
+export const FOG_NEAR = CHUNK_SIZE * (TERRAIN_RADIUS * 0.72);
+export const FOG_FAR = CHUNK_SIZE * (TERRAIN_RADIUS + 0.45);
+export const WORLD_SEED = 13_371;
+export const MAX_TREE_INSTANCES = 2200;
+export const MAX_BUSH_INSTANCES = 900;
+export const MUSIC_URL = 'https://opengameart.org/sites/default/files/happy_adveture.mp3';

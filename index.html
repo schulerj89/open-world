@@ -3,11 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aeolian Wilds</title>
+    <title>Endless Low Poly World</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <canvas id="world"></canvas>
+      <section id="title-screen" aria-label="Title screen">
+        <div class="title-copy">
+          <p class="eyebrow">Endless Procedural World</p>
+          <h1>Aeolian Wilds</h1>
+          <p class="subtitle">Low-poly continents, forests, peaks, water, clouds, and endless chunk streaming.</p>
+          <button id="start-button" type="button">Start exploring</button>
+          <p class="music-credit">
+            Music: Happy Adventure (Loop) by TinyWorlds, CC0 via OpenGameArt.
+          </p>
+        </div>
+      </section>
+      <div id="hud">
+        <div id="debug"></div>
+        <div id="controls">WASD move · drag mouse rotate · Shift run · M mute</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
-
