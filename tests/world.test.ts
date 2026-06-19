@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHUNK_SIZE, SEA_LEVEL } from '../src/world/constants';
+import { EnvironmentSystem } from '../src/world/environment';
 import { movementDirectionFromInput } from '../src/world/player';
 import { biomeColorAt, heightAt, moistureAt, normalAt, sampleWorld } from '../src/world/world';
 
@@ -52,5 +53,29 @@ describe('procedural world fields', () => {
 
     expect(forward.z).toBeLessThan(-0.99);
     expect(backward.z).toBeGreaterThan(0.99);
+  });
+
+  it('keeps environment placement stats stable for the same loaded chunks', () => {
+    const chunks = [
+      { cx: 20, cz: -3 },
+      { cx: 21, cz: -3 },
+      { cx: 20, cz: -2 },
+      { cx: 21, cz: -2 }
+    ];
+    const first = new EnvironmentSystem();
+    const second = new EnvironmentSystem();
+
+    const firstStats = first.sync(chunks);
+    const secondStats = second.sync([...chunks].reverse());
+    const firstTotal =
+      firstStats.rocks + firstStats.flowers + firstStats.waystones + firstStats.crystals + firstStats.ruins;
+
+    expect(firstTotal).toBeGreaterThan(0);
+    expect(secondStats.rocks).toBe(firstStats.rocks);
+    expect(secondStats.flowers).toBe(firstStats.flowers);
+    expect(secondStats.waystones).toBe(firstStats.waystones);
+    expect(secondStats.crystals).toBe(firstStats.crystals);
+    expect(secondStats.ruins).toBe(firstStats.ruins);
+    expect(firstStats.estimatedInstanceMB).toBeLessThan(1);
   });
 });

@@ -19,6 +19,15 @@ test('world boots, streams chunks, and stays inside budget contracts', async ({ 
   expect(snapshot!.chunks).toBeGreaterThan(44);
   expect(snapshot!.queuedChunks).toBeLessThan(36);
   expect(snapshot!.trees + snapshot!.bushes).toBeGreaterThan(80);
+  expect(snapshot!.environment.total).toBeGreaterThan(120);
+  expect(
+    snapshot!.environment.rocks +
+      snapshot!.environment.waystones +
+      snapshot!.environment.crystals +
+      snapshot!.environment.ruins
+  ).toBeGreaterThan(10);
+  expect(snapshot!.environment.instanceMB).toBeLessThan(1);
+  expect(snapshot!.environment.syncMs).toBeLessThan(12);
   expect(snapshot!.calls).toBeLessThan(145);
   expect(snapshot!.triangles).toBeLessThan(150_000);
   expect(snapshot!.geometries).toBeLessThan(120);

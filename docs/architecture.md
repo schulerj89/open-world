@@ -29,6 +29,7 @@ Biome colors are blended per vertex from elevation and moisture:
 ## Runtime Systems
 
 - `FoliageSystem`: deterministic clustered tree and bush placements rendered through `InstancedMesh`.
+- `EnvironmentSystem`: deterministic instanced rocks, flowers, waystones, crystals, and ruin fragments for biome-scale exploration hooks.
 - `WaterSystem`: recentered sea-level plane sized under the loaded terrain footprint.
 - `SkySystem`: dithered gradient dome with fog-matched horizon haze, sun sprite, directional light, hemisphere light, and low ambient.
 - `CloudSystem`: camera-facing billboard puffs recentered around the player with per-session variation.
@@ -36,5 +37,5 @@ Biome colors are blended per vertex from elevation and moisture:
 
 ## Instrumentation
 
-`window.__OPEN_WORLD_DEBUG__.getSnapshot()` returns FPS, frame time, chunk counts, foliage counts, renderer calls, triangles, geometry/texture counts, heap usage when available, player position, biome, terrain height, and sea level.
+`window.__OPEN_WORLD_DEBUG__.getSnapshot()` returns FPS, frame time, chunk counts, foliage counts, environmental detail counts, renderer calls, triangles, geometry/texture counts, heap usage when available, player position, biome, terrain height, and sea level.
 It also reports per-frame chunk build time and an app-owned terrain geometry byte estimate because `renderer.info` is useful trend data, not a complete memory report.

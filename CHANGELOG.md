@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0 - 2026-06-18
+
+### Minor
+
+- Increased terrain mesh density while keeping the loaded chunk ring stable for performance.
+- Added a deterministic instanced environment layer with stones, flowers, waystones, crystals, and ruin fragments.
+- Added environment debug metrics for object counts, placement rebuild time, and instance-buffer memory.
+- Swapped the title music to the CC0 RPG/fantasy track `The Field Of Dreams` by pauliuw.
+- Added v1.1.0 decision docs for environment direction and rendering budget.
+- Added versioned v1.1.0 screenshot artifact workflow with shoreline, forest, and rocky terrain captures.
+
+### Patch
+
+- Fixed third-person forward/backward movement direction.
+
 ## 1.0.0 - 2026-06-18
 
 ### Major

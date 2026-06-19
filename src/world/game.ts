@@ -8,13 +8,14 @@ import {
   SEA_LEVEL
 } from './constants';
 import { CloudSystem } from './clouds';
+import { EnvironmentSystem } from './environment';
 import { FoliageSystem } from './foliage';
 import { InputController } from './input';
 import { PlayerController } from './player';
 import { SkySystem } from './sky';
 import { TerrainSystem } from './terrain';
 import { WaterSystem } from './water';
-import { heightAt } from './world';
+import { heightAt, sampleWorld } from './world';
 
 interface DebugSnapshot {
   version: string;
@@ -32,6 +33,16 @@ interface DebugSnapshot {
   heapMB: number | null;
   terrainGeometryMB: number;
   chunkBuildMs: number;
+  environment: {
+    total: number;
+    rocks: number;
+    flowers: number;
+    waystones: number;
+    crystals: number;
+    ruins: number;
+    syncMs: number;
+    instanceMB: number;
+  };
   player: ReturnType<PlayerController['getStats']>;
   seaLevel: number;
 }
@@ -42,6 +53,7 @@ declare global {
       getSnapshot: () => DebugSnapshot;
       setPlayerPosition: (x: number, z: number) => void;
       sampleHeight: (x: number, z: number) => number;
+      sampleWorld: (x: number, z: number) => ReturnType<typeof sampleWorld>;
       version: string;
     };
   }
@@ -54,6 +66,7 @@ export class Game {
   private readonly input: InputController;
   private readonly terrain = new TerrainSystem();
   private readonly foliage = new FoliageSystem();
+  private readonly environment = new EnvironmentSystem();
   private readonly water = new WaterSystem();
   private readonly sky = new SkySystem();
   private readonly clouds = new CloudSystem();
@@ -94,6 +107,7 @@ export class Game {
       this.sky.group,
       this.terrain.group,
       this.foliage.group,
+      this.environment.group,
       this.water.mesh,
       this.clouds.group,
       this.player.group
@@ -110,6 +124,7 @@ export class Game {
       getSnapshot: () => this.snapshot,
       setPlayerPosition: (x: number, z: number) => this.player.setPosition(x, z),
       sampleHeight: (x: number, z: number) => heightAt(x, z),
+      sampleWorld: (x: number, z: number) => sampleWorld(x, z),
       version: APP_VERSION
     };
   }
@@ -145,7 +160,9 @@ export class Game {
 
     const playerPosition = this.player.getPosition();
     this.terrain.update(playerPosition);
-    this.foliage.sync(this.terrain.getLoadedChunkCoords());
+    const loadedChunks = this.terrain.getLoadedChunkCoords();
+    this.foliage.sync(loadedChunks);
+    this.environment.sync(loadedChunks);
     this.water.update(playerPosition, this.elapsed);
     this.clouds.update(playerPosition, this.elapsed);
     this.sky.update(this.camera);
@@ -194,9 +211,10 @@ export class Game {
         `fps ${this.snapshot.fps.toFixed(1)} | frame ${this.snapshot.frameMs.toFixed(1)}ms`,
         `chunks ${this.snapshot.chunks} queued ${this.snapshot.queuedChunks}`,
         `trees ${this.snapshot.trees} bushes ${this.snapshot.bushes}`,
+        `env ${this.snapshot.environment.total} r${this.snapshot.environment.rocks} f${this.snapshot.environment.flowers} l${this.snapshot.environment.waystones + this.snapshot.environment.crystals + this.snapshot.environment.ruins}`,
         `calls ${this.snapshot.calls} tris ${Math.round(this.snapshot.triangles / 1000)}k`,
         `geo ${this.snapshot.geometries} tex ${this.snapshot.textures}`,
-        `heap ${this.snapshot.heapMB === null ? 'n/a' : `${this.snapshot.heapMB.toFixed(1)} MB`} terrain ${this.snapshot.terrainGeometryMB.toFixed(1)} MB`,
+        `heap ${this.snapshot.heapMB === null ? 'n/a' : `${this.snapshot.heapMB.toFixed(1)} MB`} terrain ${this.snapshot.terrainGeometryMB.toFixed(1)} MB env ${this.snapshot.environment.instanceMB.toFixed(2)} MB`,
         `chunk build ${this.snapshot.chunkBuildMs.toFixed(2)}ms`,
         `pos ${this.snapshot.player.position.x.toFixed(1)}, ${this.snapshot.player.position.z.toFixed(1)}`,
         `h ${this.snapshot.player.height.toFixed(1)} biome ${this.snapshot.player.biome}`,
@@ -210,6 +228,13 @@ export class Game {
     const memory = this.renderer.info.memory;
     const terrainStats = this.terrain.getStats();
     const foliageStats = this.foliage.getStats();
+    const environmentStats = this.environment.getStats();
+    const environmentTotal =
+      environmentStats.rocks +
+      environmentStats.flowers +
+      environmentStats.waystones +
+      environmentStats.crystals +
+      environmentStats.ruins;
     const performanceMemory = getPerformanceMemory();
     return {
       version: APP_VERSION,
@@ -227,6 +252,16 @@ export class Game {
       heapMB: performanceMemory,
       terrainGeometryMB: terrainStats.estimatedGeometryMB,
       chunkBuildMs: terrainStats.lastBuildMs,
+      environment: {
+        total: environmentTotal,
+        rocks: environmentStats.rocks,
+        flowers: environmentStats.flowers,
+        waystones: environmentStats.waystones,
+        crystals: environmentStats.crystals,
+        ruins: environmentStats.ruins,
+        syncMs: environmentStats.lastSyncMs,
+        instanceMB: environmentStats.estimatedInstanceMB
+      },
       player: this.player.getStats(),
       seaLevel: SEA_LEVEL
     };

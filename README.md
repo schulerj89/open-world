@@ -1,6 +1,6 @@
 # Aeolian Wilds
 
-Version `1.0.0` is a clean rebuild of the old open-world repo into an endless procedural low-poly Three.js world.
+Version `1.1.0` is an endless procedural low-poly Three.js world with denser terrain, instanced environmental detail, RPG music, and third-person exploration.
 
 ## Run
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`.
+Open the URL Vite prints. The local verification port for this repo is `http://127.0.0.1:5176`.
 
 ## Controls
 
@@ -27,9 +27,9 @@ npm run test:smoke
 npm run capture:screenshots
 ```
 
-The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, resource counts, heap usage when Chromium exposes it, player coordinates, biome, terrain height, and water-blocking counts.
+The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, resource counts, heap usage when Chromium exposes it, terrain and environment memory estimates, player coordinates, biome, terrain height, and water-blocking counts.
 
 ## Music
 
-Title music is `Happy Adventure (Loop)` by TinyWorlds from OpenGameArt, licensed CC0:
-https://opengameart.org/content/happy-adventure-loop
+Title music is `The Field Of Dreams` by pauliuw from OpenGameArt, licensed CC0:
+https://opengameart.org/content/the-field-of-dreams

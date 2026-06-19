@@ -8,14 +8,14 @@ export default defineConfig({
     timeout: 10_000
   },
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5176',
     trace: 'off',
     screenshot: 'only-on-failure',
     video: 'off'
   },
   webServer: {
-    command: 'npm run dev -- --port 5173',
-    url: 'http://127.0.0.1:5173',
+    command: 'npm run dev -- --port 5176 --strictPort',
+    url: 'http://127.0.0.1:5176',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000
   },
