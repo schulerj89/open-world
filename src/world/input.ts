@@ -1,8 +1,11 @@
+import { WEATHER_KINDS, WeatherOverride } from './weather';
+
 export class InputController {
   readonly keys = new Set<string>();
   yaw = Math.PI * 0.25;
   pitch = 0.34;
   muted = false;
+  weatherOverride: WeatherOverride = 'auto';
 
   private dragging = false;
 
@@ -11,6 +14,9 @@ export class InputController {
       this.keys.add(event.code);
       if (event.code === 'KeyM') {
         this.muted = !this.muted;
+      }
+      if (event.code === 'KeyC' && !event.repeat) {
+        this.cycleWeatherOverride();
       }
     });
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
@@ -48,5 +54,11 @@ export class InputController {
       z,
       running: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')
     };
+  }
+
+  cycleWeatherOverride(): WeatherOverride {
+    const index = WEATHER_KINDS.indexOf(this.weatherOverride);
+    this.weatherOverride = WEATHER_KINDS[(index + 1) % WEATHER_KINDS.length];
+    return this.weatherOverride;
   }
 }

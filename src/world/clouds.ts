@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import { WeatherVisuals } from './weather';
 
 interface CloudPuff {
   sprite: THREE.Sprite;
+  baseOpacity: number;
+  baseColor: THREE.Color;
   offsetX: number;
   offsetZ: number;
   altitude: number;
@@ -23,11 +26,12 @@ export class CloudSystem {
 
     for (let i = 0; i < 26; i += 1) {
       const genera = i % 3;
+      const opacity = genera === 2 ? 0.62 : 0.78;
       const material = new THREE.SpriteMaterial({
         map: this.texture,
         color: genera === 0 ? 0xffffff : genera === 1 ? 0xf0f5f2 : 0xdde8e7,
         transparent: true,
-        opacity: genera === 2 ? 0.62 : 0.78,
+        opacity,
         depthWrite: false,
         fog: true
       });
@@ -37,6 +41,8 @@ export class CloudSystem {
       this.group.add(sprite);
       this.puffs.push({
         sprite,
+        baseOpacity: opacity,
+        baseColor: material.color.clone(),
         offsetX: random(i + 7, this.seed) * this.range - this.range * 0.5,
         offsetZ: random(i + 13, this.seed) * this.range - this.range * 0.5,
         altitude: 44 + genera * 24 + random(i + 17, this.seed) * 22,
@@ -51,6 +57,16 @@ export class CloudSystem {
       const x = wrapOffset(puff.offsetX + time * puff.speed + puff.drift, this.range);
       const z = wrapOffset(puff.offsetZ + time * puff.speed * 0.38, this.range);
       puff.sprite.position.set(player.x + x, puff.altitude, player.z + z);
+    }
+  }
+
+  setWeather(visuals: WeatherVisuals): void {
+    const weatherColor = new THREE.Color(visuals.horizonColor);
+    const tintAmount = Math.max(0, visuals.cloudOpacityScale - 1) * 0.28;
+    for (const puff of this.puffs) {
+      const material = puff.sprite.material as THREE.SpriteMaterial;
+      material.opacity = Math.min(0.92, puff.baseOpacity * visuals.cloudOpacityScale);
+      material.color.copy(puff.baseColor).lerp(weatherColor, tintAmount);
     }
   }
 }

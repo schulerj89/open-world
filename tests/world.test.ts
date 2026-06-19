@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import { CHUNK_SIZE, SEA_LEVEL } from '../src/world/constants';
 import { EnvironmentSystem } from '../src/world/environment';
+import { ObjectiveSystem } from '../src/world/objective';
 import { movementDirectionFromInput } from '../src/world/player';
+import { WeatherSystem, weatherAt } from '../src/world/weather';
 import { biomeColorAt, heightAt, moistureAt, normalAt, sampleWorld } from '../src/world/world';
 
 describe('procedural world fields', () => {
@@ -77,5 +80,40 @@ describe('procedural world fields', () => {
     expect(secondStats.crystals).toBe(firstStats.crystals);
     expect(secondStats.ruins).toBe(firstStats.ruins);
     expect(firstStats.estimatedInstanceMB).toBeLessThan(1);
+  });
+
+  it('selects deterministic weather and produces forced precipitation particles', () => {
+    expect(weatherAt(256, -512)).toBe(weatherAt(256, -512));
+
+    const weather = new WeatherSystem();
+    const player = new THREE.Vector3(0, 42, 0);
+
+    weather.setOverride('rain');
+    const rain = weather.update(player, 12);
+    expect(rain.kind).toBe('rain');
+    expect(rain.particles).toBeGreaterThan(500);
+
+    weather.setOverride('snow');
+    const snow = weather.update(player, 13);
+    expect(snow.kind).toBe('snow');
+    expect(snow.particles).toBeGreaterThan(450);
+
+    weather.setOverride('clear');
+    const clear = weather.update(player, 14);
+    expect(clear.kind).toBe('clear');
+    expect(clear.particles).toBe(0);
+  });
+
+  it('advances the weather beacon objective when targets are reached', () => {
+    const origin = new THREE.Vector3(0, heightAt(0, 0), 0);
+    const objective = new ObjectiveSystem(origin);
+
+    for (let index = 0; index < 3; index += 1) {
+      const target = objective.getActiveTarget();
+      expect(target.y).toBeGreaterThan(SEA_LEVEL);
+      objective.update(new THREE.Vector3(target.x, target.y, target.z), index);
+    }
+
+    expect(objective.getStats(origin).complete).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 # Aeolian Wilds
 
-Version `1.1.0` is an endless procedural low-poly Three.js world with denser terrain, instanced environmental detail, RPG music, and third-person exploration.
+Version `1.2.0` is an endless procedural low-poly Three.js world with denser terrain, weather, improved Phong water shimmer, a three-beacon objective loop, RPG music, and third-person exploration.
 
 ## Run
 
@@ -17,6 +17,7 @@ Open the URL Vite prints. The local verification port for this repo is `http://1
 - `Shift`: run
 - Drag mouse: rotate camera
 - `M`: mute music
+- `C`: cycle weather override
 
 ## Verification
 
@@ -27,7 +28,9 @@ npm run test:smoke
 npm run capture:screenshots
 ```
 
-The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, resource counts, heap usage when Chromium exposes it, terrain and environment memory estimates, player coordinates, biome, terrain height, and water-blocking counts.
+The in-game debug overlay exposes FPS, chunk queue pressure, renderer calls, triangle count, render scale, resource counts, heap usage when Chromium exposes it, terrain/environment/water memory estimates, current weather, objective progress, player coordinates, biome, terrain height, and water-blocking counts.
+
+Versioned screenshots are written under `artifacts/screenshots/v1.2.0`.
 
 ## Music
 

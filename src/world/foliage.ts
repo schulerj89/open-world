@@ -111,7 +111,7 @@ export class FoliageSystem {
     trees: TreePlacement[],
     bushes: BushPlacement[]
   ): void {
-    const cell = 13.2;
+    const cell = 12;
     for (let z = 4; z < CHUNK_SIZE; z += cell) {
       for (let x = 4; x < CHUNK_SIZE; x += cell) {
         const baseX = chunk.cx * CHUNK_SIZE + x;

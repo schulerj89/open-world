@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0 - 2026-06-19
+
+### Minor
+
+- Raised terrain density from 20 to 24 segments per chunk and increased procedural foliage/environment instance caps.
+- Added deterministic clear, cloudy, rain, and snow weather with fog, sky, cloud, light, and precipitation updates.
+- Improved water with a scrolling procedural normal map on the existing light-based `MeshPhongMaterial` sea plane.
+- Added a three-step weather beacon objective loop with in-world markers, HUD direction/distance, and debug API support.
+- Added v1.2.0 water/weather/objective decision documentation with open-source Three.js water research.
+- Added v1.2.0 smoke coverage for denser terrain memory, weather particles, water stats, and objective progress.
+- Expanded screenshot capture to include rain, snow, and objective beacon verification frames.
+
 ## 1.1.0 - 2026-06-18
 
 ### Minor

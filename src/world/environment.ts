@@ -163,7 +163,7 @@ export class EnvironmentSystem {
     flowers: Placement[],
     crystals: Placement[]
   ): void {
-    const cell = 14;
+    const cell = 11.5;
     for (let z = 5; z < CHUNK_SIZE; z += cell) {
       for (let x = 5; x < CHUNK_SIZE; x += cell) {
         const baseX = chunk.cx * CHUNK_SIZE + x;

@@ -32,6 +32,22 @@ try {
   await moveToBest(page, 'rock');
   await page.screenshot({ path: path.join(outDir, '06-rocky-slope-detail.png'), fullPage: true });
 
+  await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('rain'));
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: path.join(outDir, '07-rain-weather.png'), fullPage: true });
+
+  await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('snow'));
+  await moveToBest(page, 'snow');
+  await page.screenshot({ path: path.join(outDir, '08-snow-weather.png'), fullPage: true });
+
+  await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.setWeatherOverride('clear'));
+  const objectiveTarget = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getObjectiveTarget());
+  await page.evaluate((target) => window.__OPEN_WORLD_DEBUG__?.setPlayerPosition(target.x, target.z), objectiveTarget);
+  await page.waitForFunction(() => (window.__OPEN_WORLD_DEBUG__?.getSnapshot().objective.completed ?? 0) > 0);
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: path.join(outDir, '09-objective-beacon.png'), fullPage: true });
+
+  await page.waitForTimeout(4500);
   const metrics = await page.evaluate(() => window.__OPEN_WORLD_DEBUG__?.getSnapshot());
   console.log(JSON.stringify(metrics, null, 2));
 } finally {
@@ -46,7 +62,7 @@ async function moveToBest(page, desiredBiome) {
     for (let z = -4800; z <= 4800; z += 120) {
       for (let x = -4800; x <= 4800; x += 120) {
         const sample = debug.sampleWorld(x, z);
-        if (sample.height < -4 || sample.height > 150) continue;
+        if (sample.height < -4 || sample.height > (biome === 'snow' ? 220 : 150)) continue;
         const biomeScore = sample.biome === biome ? 4 : relatedBiomeScore(sample.biome, biome, sample.height);
         if (biomeScore <= 0) continue;
         const distance = Math.hypot(x, z);
@@ -64,7 +80,7 @@ async function moveToBest(page, desiredBiome) {
       for (let z = -4800; z <= 4800; z += 120) {
         for (let x = -4800; x <= 4800; x += 120) {
           const sample = debug.sampleWorld(x, z);
-          if (sample.height < 6 || sample.height > 150) continue;
+          if (sample.height < 6 || sample.height > (biome === 'snow' ? 220 : 150)) continue;
           const score = sample.height - Math.hypot(x, z) * 0.002;
           if (score > best.score) best = { x, z, score };
         }

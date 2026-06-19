@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { FOG_COLOR } from './constants';
+import { WeatherVisuals } from './weather';
 
 export class SkySystem {
   readonly group = new THREE.Group();
   readonly sunLight = new THREE.DirectionalLight(0xffd59a, 2.15);
 
   private readonly dome: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
+  private readonly skyMaterial: THREE.ShaderMaterial;
   private readonly sunSprite: THREE.Sprite;
   private readonly sunDirection = new THREE.Vector3(-0.42, 0.74, -0.52).normalize();
 
@@ -13,7 +15,7 @@ export class SkySystem {
     this.group.name = 'sky-light-cloud-anchor';
 
     const fogColor = new THREE.Color(FOG_COLOR);
-    const material = new THREE.ShaderMaterial({
+    this.skyMaterial = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
       depthTest: true,
@@ -51,7 +53,7 @@ export class SkySystem {
       `
     });
 
-    this.dome = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), material);
+    this.dome = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), this.skyMaterial);
     this.dome.name = 'dithered-gradient-sky-dome';
     this.dome.renderOrder = -1000;
     this.group.add(this.dome);
@@ -79,6 +81,15 @@ export class SkySystem {
   update(camera: THREE.Camera): void {
     this.dome.position.copy(camera.position);
     this.sunSprite.position.copy(camera.position).add(this.sunDirection.clone().multiplyScalar(360));
+  }
+
+  setWeather(visuals: WeatherVisuals): void {
+    this.skyMaterial.uniforms.zenith.value.setHex(visuals.zenithColor);
+    this.skyMaterial.uniforms.horizon.value.setHex(visuals.horizonColor);
+    this.skyMaterial.uniforms.fog.value.setHex(visuals.fogColor);
+    this.sunLight.intensity = visuals.sunIntensity;
+    const material = this.sunSprite.material as THREE.SpriteMaterial;
+    material.opacity = visuals.sunOpacity;
   }
 }
 
